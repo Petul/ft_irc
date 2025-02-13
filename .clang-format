@@ -1,0 +1,6 @@
+BasedOnStyle: Google
+BreakBeforeBraces: Allman
+IndentWidth: 4  # Change this to your preferred number of spaces
+TabWidth: 4     # Ensures tab width matches indent width
+UseTab: ForIndentation   # Use spaces instead of tabs (adjust if you want tabs)
+AllowShortFunctionsOnASingleLine: false
