@@ -6,7 +6,7 @@
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/13 16:26:34 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/13 16:28:41 by pleander         ###   ########.fr       */
+/*   Updated: 2025/02/14 08:43:35 by pleander         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,7 +30,7 @@ class Server
 	void startServer();
 
    private:
-	int server_port;
+	int server_port_;
 	std::string server_pass_;
 	std::map<std::string, Channel> channels_;
 	std::vector<User> users_;
