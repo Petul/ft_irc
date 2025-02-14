@@ -6,13 +6,14 @@
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 08:39:33 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/14 13:27:01 by pleander         ###   ########.fr       */
+/*   Updated: 2025/02/14 14:00:03 by pleander         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
 
 #include <poll.h>
+#include <string.h>  //replace
 #include <unistd.h>
 
 #include <iostream>
@@ -81,45 +82,47 @@ void Server::startServer()
 
 		for (size_t i = 0; i < pollFds.size(); i++)
 		{
-			if (pollFds[i].fd == serverSocket)
-			{  // new client trying to connect
-				struct sockaddr_in clientAddr;
-				socklen_t clientLen = sizeof(clientAddr);
-				int clientSocket =
-				    accept(serverSocket, (sockaddr*)&serverAddr, &clientLen);
-				if (clientSocket > 0)
+			if (pollFds[i].revents & POLLIN)
+			{
+				if (pollFds[i].fd == serverSocket)
+				{  // new client trying to connect
+					struct sockaddr_in clientAddr;
+					socklen_t clientLen = sizeof(clientAddr);
+					int clientSocket = accept(
+					    serverSocket, (sockaddr*)&serverAddr, &clientLen);
+					if (clientSocket > 0)
+					{
+						std::cout << "New client connected: " << clientSocket
+						          << "\n";
+						//					setNonBlocking(clientSocket);
+						pollFds.push_back({clientSocket, POLLIN, 0});
+						this->users_[clientSocket] = User(clientSocket);
+					}
+				}
+				else
 				{
-					std::cout << "New client connected: " << clientSocket
-					          << "\n";
-					//					setNonBlocking(clientSocket);
-					pollFds.push_back({clientSocket, POLLIN, 0});
-					this->users_[clientSocket] = User(clientSocket);
+					// client sending data
+					char buffer[1024];
+					memset(buffer, 0, sizeof(buffer));
+					int bytes = recv(pollFds[i].fd, buffer, sizeof(buffer), 0);
+					std::cout << "Client " << pollFds[i].fd << ": " << buffer
+					          << std::endl;
+					// if (bytes > 0)
+					// {
+					// 	std::cout << "Client: " << buffer << "\n";
+					// 	    std::string message = ":server 001 Welcome to
+					// IRC!\n"; 		send(pollFds[i].fd, message.c_str(),
+					// message.size(), 0);
+					// }
+					// else if (bytes == 0)
+					// {
+					// 	std::cout << "client disconnected: " << pollFds[i].fd
+					// 	          << std::endl;
+					// 	close(pollFds[i].fd);
+					// }
 				}
 			}
-			else
-			{
-				std::cout << "Client " << pollFds[i].fd << " is sending data."
-				          << std::endl;
-
-				// 	// client sending data
-				// 	char buffer[1024];
-				// 	memset(buffer, 0, sizeof(buffer));
-				// 	int bytes = recv(pollFds[i].fd, buffer, sizeof(buffer), 0);
-				// 	if (bytes > 0)
-				// 	{
-				// 		std::cout << "Client: " << buffer << "\n";
-				// 		std::string message = ":server 001 Welcome to IRC!\n";
-				// 		send(pollFds[i].fd, message.c_str(), message.size(), 0);
-				// 	}
-				// 	else if (bytes == 0)
-				// 	{
-				// 		std::cout << "client disconnected: " << pollFds[i].fd
-				// 		          << std::endl;
-				// 		close(pollFds[i].fd);
-				// 	}
-				// }
-			}
 		}
-		close(serverSocket);
 	}
+	close(serverSocket);  // Never reaching, handle somehow
 }
