@@ -6,7 +6,7 @@
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 12:56:56 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/14 15:20:27 by pleander         ###   ########.fr       */
+/*   Updated: 2025/02/14 15:43:33 by pleander         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,7 @@ class User
 
    private:
 	int sockfd_;
+	bool registered_;
 	std::string username_;
 	std::string nick_;
 };
