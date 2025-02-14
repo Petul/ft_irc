@@ -6,7 +6,7 @@
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 08:39:33 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/14 14:00:03 by pleander         ###   ########.fr       */
+/*   Updated: 2025/02/14 14:43:29 by pleander         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,8 +55,6 @@ void Server::startServer()
 	serverSocket = socket(AF_INET, SOCK_STREAM, 0);
 	if (serverSocket == -1) throw std::runtime_error("failed to create socket");
 
-	// setNonBlocking(serverSocket);
-
 	serverAddr.sin_family = AF_INET;
 	serverAddr.sin_addr.s_addr = INADDR_ANY;
 	serverAddr.sin_port = htons(this->server_port_);
@@ -76,8 +74,7 @@ void Server::startServer()
 		int eventCount = poll(pollFds.data(), pollFds.size(), -1);
 		if (eventCount == -1)
 		{
-			std::cerr << "poll() failed\n";
-			break;
+			throw std::runtime_error("Error: poll");
 		}
 
 		for (size_t i = 0; i < pollFds.size(); i++)
@@ -94,7 +91,6 @@ void Server::startServer()
 					{
 						std::cout << "New client connected: " << clientSocket
 						          << "\n";
-						//					setNonBlocking(clientSocket);
 						pollFds.push_back({clientSocket, POLLIN, 0});
 						this->users_[clientSocket] = User(clientSocket);
 					}
@@ -105,21 +101,21 @@ void Server::startServer()
 					char buffer[1024];
 					memset(buffer, 0, sizeof(buffer));
 					int bytes = recv(pollFds[i].fd, buffer, sizeof(buffer), 0);
-					std::cout << "Client " << pollFds[i].fd << ": " << buffer
-					          << std::endl;
-					// if (bytes > 0)
-					// {
-					// 	std::cout << "Client: " << buffer << "\n";
-					// 	    std::string message = ":server 001 Welcome to
-					// IRC!\n"; 		send(pollFds[i].fd, message.c_str(),
-					// message.size(), 0);
-					// }
-					// else if (bytes == 0)
-					// {
-					// 	std::cout << "client disconnected: " << pollFds[i].fd
-					// 	          << std::endl;
-					// 	close(pollFds[i].fd);
-					// }
+					if (bytes > 0)
+					{
+						std::cout << "Client " << pollFds[i].fd << ": "
+						          << buffer << std::endl;
+					}
+					else if (bytes == 0)
+					{
+						std::cout << "Client disconnected: " << pollFds[i].fd
+						          << std::endl;
+						close(pollFds[i].fd);
+					}
+					else
+					{
+						throw std::runtime_error{"Error: recv"};
+					}
 				}
 			}
 		}
