@@ -6,14 +6,13 @@
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 08:39:33 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/14 14:43:29 by pleander         ###   ########.fr       */
+/*   Updated: 2025/02/14 15:33:55 by pleander         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
 
 #include <poll.h>
-#include <string.h>  //replace
 #include <unistd.h>
 
 #include <iostream>
@@ -97,25 +96,19 @@ void Server::startServer()
 				}
 				else
 				{
-					// client sending data
-					char buffer[1024];
-					memset(buffer, 0, sizeof(buffer));
-					int bytes = recv(pollFds[i].fd, buffer, sizeof(buffer), 0);
-					if (bytes > 0)
+					// Receive data from client
+					std::string buf(1024, 0);
+					if (!users_[pollFds[i].fd].receiveData(buf))
 					{
-						std::cout << "Client " << pollFds[i].fd << ": "
-						          << buffer << std::endl;
+						std::cout << "Client " << pollFds[i].fd
+						          << " disconnected." << std::endl;
+						pollFds[i].fd = -1;  // Ignore this in the future,
+						                     // delete before next iteration?
+						continue;
 					}
-					else if (bytes == 0)
-					{
-						std::cout << "Client disconnected: " << pollFds[i].fd
-						          << std::endl;
-						close(pollFds[i].fd);
-					}
-					else
-					{
-						throw std::runtime_error{"Error: recv"};
-					}
+					std::cout << "Client " << pollFds[i].fd << ": " << buf
+					          << std::endl;
+					// TODO: Do something with the client data
 				}
 			}
 		}

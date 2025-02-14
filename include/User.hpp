@@ -6,7 +6,7 @@
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 12:56:56 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/14 13:36:34 by pleander         ###   ########.fr       */
+/*   Updated: 2025/02/14 15:20:27 by pleander         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,7 @@ class User
 	User(const User&);
 	User& operator=(const User&);
 
-	std::string receiveData();
+	int receiveData(std::string& buf);
 	void sendData(std::string data);
 
    private:
