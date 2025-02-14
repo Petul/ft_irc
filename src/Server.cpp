@@ -6,11 +6,13 @@
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 08:39:33 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/14 08:52:32 by pleander         ###   ########.fr       */
+/*   Updated: 2025/02/14 09:11:52 by pleander         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
+
+#include "sys/socket.h"
 
 Server::Server() : Server("default", 8123)
 {
@@ -38,4 +40,5 @@ Server& Server::operator=(const Server& o)
 
 void Server::startServer()
 {
+	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
 }
