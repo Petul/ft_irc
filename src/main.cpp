@@ -1,37 +1,19 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   Server.hpp                                         :+:      :+:    :+:   */
+/*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/02/13 16:26:34 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/14 13:37:44 by pleander         ###   ########.fr       */
+/*   Created: 2025/02/14 13:30:16 by pleander          #+#    #+#             */
+/*   Updated: 2025/02/14 13:31:05 by pleander         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#pragma once
+#include "Server.hpp"
 
-// class Channel;  // Temp
-
-#include <map>
-#include <string>
-
-#include "User.hpp"
-
-class Server
+int main(void)
 {
-   public:
-	Server();
-	Server(std::string server_pass, int server_port);
-	Server(const Server&);
-	Server& operator=(const Server&);
-
-	void startServer();
-
-   private:
-	std::string server_pass_;
-	int server_port_;
-	// std::map<std::string, Channel> channels_;
-	std::map<int, User> users_;
-};
+	Server server("foo", 8123);
+	server.startServer();
+}
