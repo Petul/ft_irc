@@ -6,7 +6,7 @@
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 08:39:33 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/15 18:39:13 by pleander         ###   ########.fr       */
+/*   Updated: 2025/02/15 19:14:20 by pleander         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,6 @@
 #include <poll.h>
 #include <unistd.h>
 
-#include <iostream>
 #include <stdexcept>
 #include <vector>
 
@@ -64,7 +63,8 @@ void Server::startServer()
 
 	if (listen(serverSocket, 5) == -1)
 		throw std::runtime_error("listen() failed");
-	std::cout << "Server listening on port " << this->server_port_ << "...\n";
+	Logger::log(Logger::INFO, "Server listening on port " +
+	                              std::to_string(this->server_port_));
 
 	std::vector<struct pollfd> pollFds;
 	pollFds.push_back({serverSocket, POLLIN, 0});
@@ -89,8 +89,9 @@ void Server::startServer()
 					    serverSocket, (sockaddr*)&serverAddr, &clientLen);
 					if (clientSocket > 0)
 					{
-						std::cout << "New client connected: " << clientSocket
-						          << "\n";
+						Logger::log(Logger::INFO,
+						            "New client connected: " +
+						                std::to_string(clientSocket));
 						pollFds.push_back({clientSocket, POLLIN, 0});
 						this->users_[clientSocket] = User(clientSocket);
 					}
@@ -104,14 +105,16 @@ void Server::startServer()
 						std::string msg = "Client " +
 						                  std::to_string(pollFds[i].fd) +
 						                  " disconnected";
-						Logger::log(Logger::DEBUG, msg);
+						Logger::log(Logger::INFO, msg);
 
 						pollFds[i].fd = -1;  // Ignore this in the future,
 						                     // delete before next iteration?
 						continue;
 					}
-					std::cout << "Client " << pollFds[i].fd << ": " << buf
-					          << std::endl;
+					Logger::log(Logger::DEBUG,
+					            "Client " + std::to_string(pollFds[i].fd) +
+					                " sent: " + buf);
+
 					// TODO: Do something with the client data
 					parseMessage(buf);
 				}
@@ -126,7 +129,7 @@ void Server::parseMessage(std::string& msg)
 	COMMANDTYPE cmd = getMessageType(msg);
 	if (cmd == NONE)
 	{
-		std::cout << "Error: Invalid command" << std::endl;
+		Logger::log(Logger::ERROR, "Invalid command: " + msg);
 	}
 }
 

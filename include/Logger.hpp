@@ -6,7 +6,7 @@
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/15 18:16:37 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/15 18:55:40 by pleander         ###   ########.fr       */
+/*   Updated: 2025/02/15 19:04:13 by pleander         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,6 @@ class Logger
 		WARNING,
 		ERROR
 	};
-	static void log(enum LEVEL lvl, std::string &msg);
+	static void log(enum LEVEL lvl, std::string msg);
 	static const std::chrono::system_clock::time_point start_time_;
 };
