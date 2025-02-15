@@ -51,11 +51,13 @@ User& User::operator=(const User& o)
  */
 int User::receiveData(std::string& buf)
 {
-	int n_bytes = recv(this->sockfd_, (char*)buf.data(), buf.size(), 0);
+	int n_bytes =
+	    recv(this->sockfd_, const_cast<char*>(buf.data()), buf.size(), 0);
 	if (n_bytes > 0)
 	{
 		return (1);
 	}
+	// Client closed the connection
 	else if (n_bytes == 0)
 	{
 		close(this->sockfd_);
@@ -63,6 +65,23 @@ int User::receiveData(std::string& buf)
 	}
 	else
 	{
-		throw std::runtime_error{"Error: recv"};
+		throw std::runtime_error{"Error: receiveData"};
 	}
+}
+
+/**
+ * @brief Sends the data in the buffer to the user
+ *
+ * @param buf: data to send
+ * @return bytes written or throw error
+ */
+int User::sendData(std::string& buf)
+{
+	int n_bytes =
+	    write(this->sockfd_, const_cast<char*>(buf.data()), buf.size());
+	if (n_bytes < 0)
+	{
+		throw std::runtime_error{"Error: sendData"};
+	}
+	return (n_bytes);
 }

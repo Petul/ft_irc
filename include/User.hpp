@@ -23,11 +23,12 @@ class User
 	User& operator=(const User&);
 
 	int receiveData(std::string& buf);
-	void sendData(std::string data);
+	int sendData(std::string& buf);
 
    private:
 	int sockfd_;
-	bool registered_;
+	bool registered_{false};
+	std::string password_;
 	std::string username_;
 	std::string nick_;
 };
