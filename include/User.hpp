@@ -24,6 +24,10 @@ class User
 
 	int receiveData(std::string& buf);
 	int sendData(std::string& buf);
+	void setPassword(std::string& pass);
+	void setNick(std::string& nick);
+	void setUsername(std::string& username);
+	bool registerUser();
 
    private:
 	int sockfd_;

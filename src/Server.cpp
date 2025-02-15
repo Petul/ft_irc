@@ -6,7 +6,7 @@
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 08:39:33 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/14 15:33:55 by pleander         ###   ########.fr       */
+/*   Updated: 2025/02/15 18:39:13 by pleander         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,7 @@
 #include <stdexcept>
 #include <vector>
 
+#include "Logger.hpp"
 #include "netinet/in.h"
 #include "sys/socket.h"
 
@@ -100,8 +101,11 @@ void Server::startServer()
 					std::string buf(1024, 0);
 					if (!users_[pollFds[i].fd].receiveData(buf))
 					{
-						std::cout << "Client " << pollFds[i].fd
-						          << " disconnected." << std::endl;
+						std::string msg = "Client " +
+						                  std::to_string(pollFds[i].fd) +
+						                  " disconnected";
+						Logger::log(Logger::DEBUG, msg);
+
 						pollFds[i].fd = -1;  // Ignore this in the future,
 						                     // delete before next iteration?
 						continue;
@@ -109,9 +113,27 @@ void Server::startServer()
 					std::cout << "Client " << pollFds[i].fd << ": " << buf
 					          << std::endl;
 					// TODO: Do something with the client data
+					parseMessage(buf);
 				}
 			}
 		}
 	}
 	close(serverSocket);  // Never reaching, handle somehow
+}
+
+void Server::parseMessage(std::string& msg)
+{
+	COMMANDTYPE cmd = getMessageType(msg);
+	if (cmd == NONE)
+	{
+		std::cout << "Error: Invalid command" << std::endl;
+	}
+}
+
+COMMANDTYPE Server::getMessageType(std::string& msg)
+{
+	if (msg.compare(0, 5, "PASS ") == 0) return (PASS);
+	if (msg.compare(0, 5, "NICK ") == 0) return (NICK);
+	if (msg.compare(0, 5, "USER ") == 0) return (USER);
+	return (NONE);
 }
