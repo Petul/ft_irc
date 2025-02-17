@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Message.hpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
+/*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/15 15:58:57 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/15 16:12:07 by pleander         ###   ########.fr       */
+/*   Updated: 2025/02/17 15:46:07 by mpellegr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,8 @@ enum COMMANDTYPE
 	PASS,
 	NICK,
 	USER,
+	JOIN,
+	PRIVMSG
 	// Add more
 
 };

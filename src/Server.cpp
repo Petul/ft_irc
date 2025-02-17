@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 08:39:33 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/17 10:46:07 by mpellegr         ###   ########.fr       */
+/*   Updated: 2025/02/17 16:53:37 by mpellegr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,6 +23,7 @@
 #include "Logger.hpp"
 #include "netinet/in.h"
 #include "sys/socket.h"
+#include "Channel.hpp"
 
 Server::Server() : Server("default", 8123)
 {
@@ -31,7 +32,7 @@ Server::Server() : Server("default", 8123)
 Server::Server(std::string server_pass, int server_port)
 	: server_pass_{server_pass}, server_port_{server_port}
 {
-	_instance = this;
+	_server = this;
 }
 
 Server::Server(const Server& o) : Server(o.server_pass_, o.server_port_)
@@ -49,13 +50,13 @@ Server& Server::operator=(const Server& o)
 	return (*this);
 }
 
-Server *Server::_instance = nullptr;
+Server *Server::_server = nullptr;
 
 void Server::handleSignal(int signum) {
 	static_cast<void>(signum);
 	std::cout << "\nServer shutting down...\n";
-	if (_instance)
-		close(_instance->_serverSocket);
+	if (_server)
+		close(_server->_serverSocket);
 	exit(0);
 }
 
@@ -136,7 +137,7 @@ void Server::startServer()
 					                " sent: " + buf);
 
 					// TODO: Do something with the client data
-					parseMessage(buf);
+					parseMessage(buf, pollFds[i].fd, _server);
 				}
 			}
 		}
@@ -144,9 +145,63 @@ void Server::startServer()
 	// close(_serverSocket);  // Never reaching, handle somehow
 }
 
-void Server::parseMessage(std::string& msg)
+std::map<std::string, Channel> &Server::getChannels() { return _channels; }
+std::map<int, User> &Server::getUsers() { return users_; };
+
+void joinChannel(std::string msg, int clientFd, Server *_server) {
+	std::istringstream iss(msg);
+	std::string cmd, channels;
+
+	iss >> cmd >> channels;
+	std::stringstream ss(channels); 
+	std::string channel;
+	while (std::getline(ss, channel, ',')) {
+		if (channel.empty() || channel[0] != '#') {
+			std::cout << "Invalid channel name: " << channel << std::endl;
+			continue;
+		}
+		std::map<std::string, Channel> &existingChannels = _server->getChannels();
+		auto it = existingChannels.find(channel);
+		// std::cout << it->first << std::endl;
+		if (it == existingChannels.end()) {
+			Channel newChannel(channel, clientFd);
+			existingChannels.insert({newChannel.getName(), newChannel});
+			Logger::log(Logger::INFO, "created new channel " + channel);
+			it = existingChannels.find(channel);
+			// std::cout << "here?\n";
+		}
+		it->second.addUser(clientFd);
+	}
+}
+
+void handleMessages(std::string msg, int clientFd, Server *_server) {
+	std::istringstream iss(msg);
+	std::string cmd, channel, message;
+
+	iss >> cmd >> channel;
+	std::stringstream ss(channel);
+	std::getline(iss, message);
+	if (!channel.empty() && !message.empty()) {
+		std::map<std::string, Channel> &existingChannels = _server->getChannels();
+		auto it = existingChannels.find(channel);
+		if (it != existingChannels.end() && it->second.isUserInChannel(clientFd)) {
+			it->second.displayMessage(clientFd, message);
+		} else {
+			std::string msg = "User " + std::to_string(clientFd) + " is not in channel " + channel + " or channel doesn't exist.\n";
+			Logger::log(Logger::ERROR, msg);
+		}
+	}
+}
+
+void Server::parseMessage(std::string& msg, int clientFd, Server *_server)
 {
 	COMMANDTYPE cmd = getMessageType(msg);
+	if (cmd == JOIN) {
+		joinChannel(msg, clientFd, _server);
+	}
+	else if (cmd == PRIVMSG) {
+		handleMessages(msg, clientFd, _server);
+	}
 	if (cmd == NONE)
 	{
 		Logger::log(Logger::ERROR, "Invalid command: " + msg);
@@ -158,5 +213,7 @@ COMMANDTYPE Server::getMessageType(std::string& msg)
 	if (msg.compare(0, 5, "PASS ") == 0) return (PASS);
 	if (msg.compare(0, 5, "NICK ") == 0) return (NICK);
 	if (msg.compare(0, 5, "USER ") == 0) return (USER);
+	if (msg.compare(0, 5, "JOIN ") == 0) return (JOIN);
+	if (msg.compare(0, 8, "PRIVMSG ") == 0) return (PRIVMSG);
 	return (NONE);
 }

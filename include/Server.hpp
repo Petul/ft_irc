@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/13 16:26:34 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/17 10:42:59 by mpellegr         ###   ########.fr       */
+/*   Updated: 2025/02/17 16:13:25 by mpellegr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,9 @@
 
 #include "Message.hpp"
 #include "User.hpp"
+#include "Channel.hpp"
+
+class Channel;
 
 class Server
 {
@@ -30,15 +33,18 @@ class Server
 
 	void startServer();
 	static void handleSignal(int signum);
+	std::map<std::string, Channel> &getChannels();
+	std::map<int, User> &getUsers();
 
    private:
 	std::string server_pass_;
 	int server_port_;
 	// std::map<std::string, Channel> channels_;
 	std::map<int, User> users_;
-	static Server *_instance;
+	static Server *_server;
+	std::map<std::string, Channel> _channels;
 
 	int _serverSocket;
-	void parseMessage(std::string& msg);
+	void parseMessage(std::string& msg, int clientFd, Server *_server);
 	COMMANDTYPE getMessageType(std::string& msg);
 };
