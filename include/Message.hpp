@@ -6,7 +6,7 @@
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/15 15:58:57 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/17 10:20:22 by pleander         ###   ########.fr       */
+/*   Updated: 2025/02/17 13:35:25 by pleander         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,6 +35,8 @@ class Message
 	Message(std::string& raw_msg);
 
 	void parseMessage();
+	COMMANDTYPE getType();
+	std::vector<std::string>& getArgs();
 
    private:
 	void parseType();

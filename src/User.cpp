@@ -6,7 +6,7 @@
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 13:32:51 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/15 18:35:39 by pleander         ###   ########.fr       */
+/*   Updated: 2025/02/17 18:05:50 by pleander         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,7 @@
 
 #include <stdexcept>
 
+#include "Logger.hpp"
 #include "sys/socket.h"
 
 User::User() : sockfd_{-1}
@@ -84,4 +85,45 @@ int User::sendData(std::string& buf)
 		throw std::runtime_error{"Error: sendData"};
 	}
 	return (n_bytes);
+}
+
+void User::setPassword(std::string& s)
+{
+	password_ = s;
+}
+
+void User::registerUser()
+{
+	Logger::log(Logger::DEBUG, "Registered user " + username_);
+	registered_ = true;
+}
+
+bool User::isRegistered()
+{
+	return (registered_);
+}
+
+std::string& User::getPassword()
+{
+	return (password_);
+}
+
+void User::setNick(std::string& nick)
+{
+	nick_ = nick;
+}
+
+std::string& User::getNick()
+{
+	return (nick_);
+}
+
+void User::setUsername(std::string& username)
+{
+	username_ = username;
+}
+
+std::string& User::getUsername()
+{
+	return (username_);
 }
