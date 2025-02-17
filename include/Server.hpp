@@ -6,13 +6,15 @@
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/13 16:26:34 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/15 16:27:05 by pleander         ###   ########.fr       */
+/*   Updated: 2025/02/17 10:44:51 by pleander         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
 
 // class Channel;  // Temp
+
+#define PASS_MIN_LEN 4
 
 #include <map>
 #include <string>
@@ -35,6 +37,4 @@ class Server
 	int server_port_;
 	// std::map<std::string, Channel> channels_;
 	std::map<int, User> users_;
-	void parseMessage(std::string& msg);
-	COMMANDTYPE getMessageType(std::string& msg);
 };

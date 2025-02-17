@@ -6,21 +6,22 @@
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 08:39:33 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/15 19:14:20 by pleander         ###   ########.fr       */
+/*   Updated: 2025/02/17 11:59:52 by pleander         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
 
+#include <netinet/in.h>
 #include <poll.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
 #include <stdexcept>
 #include <vector>
 
 #include "Logger.hpp"
-#include "netinet/in.h"
-#include "sys/socket.h"
+#include "Message.hpp"
 
 Server::Server() : Server("default", 8123)
 {
@@ -115,28 +116,11 @@ void Server::startServer()
 					            "Client " + std::to_string(pollFds[i].fd) +
 					                " sent: " + buf);
 
-					// TODO: Do something with the client data
-					parseMessage(buf);
+					// Message msg{buf};
+					// msg.parseMessage();
 				}
 			}
 		}
 	}
 	close(serverSocket);  // Never reaching, handle somehow
-}
-
-void Server::parseMessage(std::string& msg)
-{
-	COMMANDTYPE cmd = getMessageType(msg);
-	if (cmd == NONE)
-	{
-		Logger::log(Logger::ERROR, "Invalid command: " + msg);
-	}
-}
-
-COMMANDTYPE Server::getMessageType(std::string& msg)
-{
-	if (msg.compare(0, 5, "PASS ") == 0) return (PASS);
-	if (msg.compare(0, 5, "NICK ") == 0) return (NICK);
-	if (msg.compare(0, 5, "USER ") == 0) return (USER);
-	return (NONE);
 }
