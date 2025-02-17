@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/13 16:26:34 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/14 15:23:29 by mpellegr         ###   ########.fr       */
+/*   Updated: 2025/02/17 10:42:59 by mpellegr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 #include <map>
 #include <string>
 
+#include "Message.hpp"
 #include "User.hpp"
 
 class Server
@@ -38,4 +39,6 @@ class Server
 	static Server *_instance;
 
 	int _serverSocket;
+	void parseMessage(std::string& msg);
+	COMMANDTYPE getMessageType(std::string& msg);
 };

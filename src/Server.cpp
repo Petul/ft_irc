@@ -6,21 +6,21 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 08:39:33 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/14 16:22:54 by mpellegr         ###   ########.fr       */
+/*   Updated: 2025/02/17 10:46:07 by mpellegr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
 
 #include <poll.h>
-#include <string.h>  //replace
 #include <unistd.h>
 
-#include <iostream>
 #include <stdexcept>
 #include <vector>
 #include <csignal>
+#include <iostream>
 
+#include "Logger.hpp"
 #include "netinet/in.h"
 #include "sys/socket.h"
 
@@ -81,7 +81,8 @@ void Server::startServer()
 
 	if (listen(_serverSocket, 5) == -1)
 		throw std::runtime_error("listen() failed");
-	std::cout << "Server listening on port " << this->server_port_ << "...\n";
+	Logger::log(Logger::INFO, "Server listening on port " +
+	                              std::to_string(this->server_port_));
 
 	std::vector<struct pollfd> pollFds;
 	pollFds.push_back({_serverSocket, POLLIN, 0});
@@ -93,8 +94,7 @@ void Server::startServer()
 		int eventCount = poll(pollFds.data(), pollFds.size(), -1);
 		if (eventCount == -1)
 		{
-			std::cerr << "poll() failed\n";
-			break;
+			throw std::runtime_error("Error: poll");
 		}
 
 		for (size_t i = 0; i < pollFds.size(); i++)
@@ -109,37 +109,54 @@ void Server::startServer()
 						_serverSocket, (sockaddr*)&serverAddr, &clientLen);
 					if (clientSocket > 0)
 					{
-						std::cout << "New client connected: " << clientSocket
-								  << "\n";
-						//					setNonBlocking(clientSocket);
+						Logger::log(Logger::INFO,
+						            "New client connected: " +
+						                std::to_string(clientSocket));
 						pollFds.push_back({clientSocket, POLLIN, 0});
 						this->users_[clientSocket] = User(clientSocket);
 					}
 				}
 				else
 				{
-					// client sending data
-					char buffer[1024];
-					memset(buffer, 0, sizeof(buffer));
-					int bytes = recv(pollFds[i].fd, buffer, sizeof(buffer), 0);
-					std::cout << "Client " << pollFds[i].fd << ": " << buffer
-							  << std::endl;
-					// if (bytes > 0)
-					// {
-					// 	std::cout << "Client: " << buffer << "\n";
-					// 	    std::string message = ":server 001 Welcome to
-					// IRC!\n"; 		send(pollFds[i].fd, message.c_str(),
-					// message.size(), 0);
-					// }
-					if (bytes == 0)
+					// Receive data from client
+					std::string buf(1024, 0);
+					if (!users_[pollFds[i].fd].receiveData(buf))
 					{
-						std::cout << "client disconnected: " << pollFds[i].fd
-								  << std::endl;
-						close(pollFds[i].fd);
+						std::string msg = "Client " +
+						                  std::to_string(pollFds[i].fd) +
+						                  " disconnected";
+						Logger::log(Logger::INFO, msg);
+
+						pollFds[i].fd = -1;  // Ignore this in the future,
+						                     // delete before next iteration?
+						continue;
 					}
+					Logger::log(Logger::DEBUG,
+					            "Client " + std::to_string(pollFds[i].fd) +
+					                " sent: " + buf);
+
+					// TODO: Do something with the client data
+					parseMessage(buf);
 				}
 			}
 		}
 	}
 	// close(_serverSocket);  // Never reaching, handle somehow
+}
+
+void Server::parseMessage(std::string& msg)
+{
+	COMMANDTYPE cmd = getMessageType(msg);
+	if (cmd == NONE)
+	{
+		Logger::log(Logger::ERROR, "Invalid command: " + msg);
+	}
+}
+
+COMMANDTYPE Server::getMessageType(std::string& msg)
+{
+	if (msg.compare(0, 5, "PASS ") == 0) return (PASS);
+	if (msg.compare(0, 5, "NICK ") == 0) return (NICK);
+	if (msg.compare(0, 5, "USER ") == 0) return (USER);
+	return (NONE);
 }
