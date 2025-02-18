@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
+/*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 08:39:33 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/18 03:30:17 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/18 07:30:36 by mpellegr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,8 +21,13 @@
 #include <iostream>
 #include <stdexcept>
 #include <vector>
+#include <csignal>
+#include <iostream>
 
 #include "Logger.hpp"
+#include "netinet/in.h"
+#include "sys/socket.h"
+#include "Channel.hpp"
 #include "Message.hpp"
 
 Server::Server() : Server("default", 8123, "defaultServerName")
@@ -32,6 +37,7 @@ Server::Server() : Server("default", 8123, "defaultServerName")
 Server::Server(std::string server_pass, int server_port, std::string server_name)
     : server_pass_{server_pass}, server_port_{server_port}, server_name_{server_name}
 {
+	_server = this;
 }
 
 Server::Server(const Server& o) : Server(o.server_pass_, o.server_port_, o.server_name_)
@@ -49,6 +55,15 @@ Server& Server::operator=(const Server& o)
 	return (*this);
 }
 
+Server *Server::_server = nullptr;
+
+void Server::handleSignal(int signum) {
+	static_cast<void>(signum);
+	std::cout << "\nServer shutting down...\n";
+	if (_server)
+		close(_server->_serverSocket);
+	exit(0);
+}
 const std::map<COMMANDTYPE, Server::executeFunc> Server::execute_map_ = {
 	{ PASS, &Server::executePassCommand },
 	{ NICK, &Server::executeNickCommand },
@@ -69,33 +84,41 @@ const std::map<COMMANDTYPE, Server::executeFunc> Server::execute_map_ = {
 
 void Server::startServer()
 {
-	int serverSocket;
 	struct sockaddr_in serverAddr;
 
-	serverSocket = socket(AF_INET, SOCK_STREAM, 0);
-	if (serverSocket == -1) throw std::runtime_error("failed to create socket");
+	_serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+	if (_serverSocket == -1) throw std::runtime_error("failed to create socket");
+
+	// setNonBlocking(serverSocket);
+
+	// Enable port reuse
+	int opt = 1;
+	setsockopt(_serverSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
 	serverAddr.sin_family = AF_INET;
 	serverAddr.sin_addr.s_addr = INADDR_ANY;
 	serverAddr.sin_port = htons(this->server_port_);
 
-	int opt{1};
-	if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt,
-	               sizeof(opt)))
-	{
-		throw std::runtime_error("setsockopt");
-	}
+	if (bind(_serverSocket, (sockaddr*)&serverAddr, sizeof(serverAddr)) == -1)
+	// int opt{1};
+	// if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt,
+	//                sizeof(opt)))
+	// {
+	// 	throw std::runtime_error("setsockopt");
+	// }
 
-	if (bind(serverSocket, (sockaddr*)&serverAddr, sizeof(serverAddr)) == -1)
+	// if (bind(serverSocket, (sockaddr*)&serverAddr, sizeof(serverAddr)) == -1)
 		throw std::runtime_error("failed to bind socket");
 
-	if (listen(serverSocket, 5) == -1)
+	if (listen(_serverSocket, 5) == -1)
 		throw std::runtime_error("listen() failed");
 	Logger::log(Logger::INFO, "Server listening on port " +
 	                              std::to_string(this->server_port_));
 
 	std::vector<struct pollfd> pollFds;
-	pollFds.push_back({serverSocket, POLLIN, 0});
+	pollFds.push_back({_serverSocket, POLLIN, 0});
+
+	signal(SIGINT, handleSignal); // 
 
 	while (1)
 	{
@@ -109,12 +132,12 @@ void Server::startServer()
 		{
 			if (pollFds[i].revents & POLLIN)
 			{
-				if (pollFds[i].fd == serverSocket)
+				if (pollFds[i].fd == _serverSocket)
 				{  // new client trying to connect
 					struct sockaddr_in clientAddr;
 					socklen_t clientLen = sizeof(clientAddr);
 					int clientSocket = accept(
-					    serverSocket, (sockaddr*)&serverAddr, &clientLen);
+						_serverSocket, (sockaddr*)&serverAddr, &clientLen);
 					if (clientSocket > 0)
 					{
 						Logger::log(Logger::INFO,
@@ -157,15 +180,55 @@ void Server::startServer()
 			}
 		}
 	}
-	close(serverSocket);  // Never reaching, handle somehow
+	// close(_serverSocket);  // Never reaching, handle somehow
+}
+
+std::map<std::string, Channel> &Server::getChannels() { return _channels; }
+std::map<int, User> &Server::getUsers() { return users_; };
+
+void joinChannel(std::vector<std::string> channels, int clientFd, Server *_server) {
+	for (size_t i = 0; i < channels.size(); i++) {
+		if (channels[i].empty() || channels[i][0] != '#') {
+			std::cout << "Invalid channel name: " << channels[i] << std::endl;
+			continue;
+		}
+		std::map<std::string, Channel> &existingChannels = _server->getChannels();
+		auto it = existingChannels.find(channels[i]);
+		// std::cout << it->first << std::endl;
+		if (it == existingChannels.end()) {
+			Channel newChannel(channels[i], clientFd);
+			existingChannels.insert({newChannel.getName(), newChannel});
+			Logger::log(Logger::INFO, "user " + std::to_string(clientFd) + " created new channel " + channels[i]);
+			it = existingChannels.find(channels[i]);
+			// std::cout << "here?\n";
+		} else
+			it->second.addUser(clientFd);
+	}
+}
+
+void handleMessages(std::vector<std::string> messages, int clientFd, Server *_server) {
+	std::string channel, message; // possible to have multile messages?
+
+	channel = messages[0];
+	message = messages[1];
+	if (!channel.empty() && !message.empty()) {
+		std::map<std::string, Channel> &existingChannels = _server->getChannels();
+		auto it = existingChannels.find(channel);
+		if (it != existingChannels.end() && it->second.isUserInChannel(clientFd)) {
+			it->second.displayMessage(clientFd, message);
+		} else {
+			std::string msg = "User " + std::to_string(clientFd) + " is not in channel " + channel + " or channel doesn't exist.\n";
+			Logger::log(Logger::ERROR, msg);
+		}
+	}
 }
 
 void Server::executeCommand(Message& msg, User& usr)
 {
-	if (!usr.isRegistered() && msg.getType() > 4)
-	{
-		return;
-	}
+	// if (!usr.isRegistered() && msg.getType() > 4) // commented out just for testing
+	// {
+	// 	return;
+	// }
     std::map<COMMANDTYPE, executeFunc>::const_iterator it = execute_map_.find(msg.getType());
     if (it != execute_map_.end())
     {
@@ -251,12 +314,12 @@ void Server::executeOperCommand(Message& msg, User& usr)
 
 void Server::executePrivmsgCommand(Message& msg, User& usr)
 {
-
+	handleMessages(msg.getArgs(), usr.getSocket(), _server);
 }
 
 void Server::executeJoinCommand(Message& msg, User& usr)
 {
-
+	joinChannel(msg.getArgs(), usr.getSocket(), _server);
 }
 
 void Server::executePartCommand(Message& msg, User& usr)

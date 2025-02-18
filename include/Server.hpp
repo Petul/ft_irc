@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
+/*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/13 16:26:34 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/18 02:28:34 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/18 06:42:09 by mpellegr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,9 @@
 
 #include "Message.hpp"
 #include "User.hpp"
+#include "Channel.hpp"
+
+class Channel;
 
 class Server
 {
@@ -31,6 +34,9 @@ class Server
 	Server& operator=(const Server&);
 
 	void startServer();
+	static void handleSignal(int signum);
+	std::map<std::string, Channel> &getChannels();
+	std::map<int, User> &getUsers();
 	void sendReply(User& usr, int numeric, const std::string& command, const std::string& message);
 
    private:
@@ -57,4 +63,10 @@ class Server
 	int server_port_;
 	// std::map<std::string, Channel> channels_;
 	std::map<int, User> users_;
+	static Server *_server;
+	std::map<std::string, Channel> _channels;
+
+	int _serverSocket;
+	void parseMessage(std::string& msg, int clientFd, Server *_server);
+	COMMANDTYPE getMessageType(std::string& msg);
 };
