@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 08:39:33 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/18 07:30:36 by mpellegr         ###   ########.fr       */
+/*   Updated: 2025/02/18 15:39:02 by mpellegr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -205,62 +205,6 @@ std::map<int, User>& Server::getUsers()
 	return users_;
 };
 
-void joinChannel(std::vector<std::string> channels, int clientFd,
-                 Server* _server)
-{
-	for (size_t i = 0; i < channels.size(); i++)
-	{
-		if (channels[i].empty() || channels[i][0] != '#')
-		{
-			std::cout << "Invalid channel name: " << channels[i] << std::endl;
-			continue;
-		}
-		std::map<std::string, Channel>& existingChannels =
-		    _server->getChannels();
-		auto it = existingChannels.find(channels[i]);
-		// std::cout << it->first << std::endl;
-		if (it == existingChannels.end())
-		{
-			Channel newChannel(channels[i], clientFd);
-			existingChannels.insert({newChannel.getName(), newChannel});
-			Logger::log(Logger::INFO, "user " + std::to_string(clientFd) +
-			                              " created new channel " +
-			                              channels[i]);
-			it = existingChannels.find(channels[i]);
-			// std::cout << "here?\n";
-		}
-		else
-			it->second.addUser(clientFd);
-	}
-}
-
-void handleMessages(std::vector<std::string> messages, int clientFd,
-                    Server* _server)
-{
-	std::string channel, message;  // possible to have multile messages?
-
-	channel = messages[0];
-	message = messages[1];
-	if (!channel.empty() && !message.empty())
-	{
-		std::map<std::string, Channel>& existingChannels =
-		    _server->getChannels();
-		auto it = existingChannels.find(channel);
-		if (it != existingChannels.end() &&
-		    it->second.isUserInChannel(clientFd))
-		{
-			it->second.displayMessage(clientFd, message);
-		}
-		else
-		{
-			std::string msg = "User " + std::to_string(clientFd) +
-			                  " is not in channel " + channel +
-			                  " or channel doesn't exist.\n";
-			Logger::log(Logger::ERROR, msg);
-		}
-	}
-}
-
 void Server::executeCommand(Message& msg, User& usr)
 {
 	// if (!usr.isRegistered() && msg.getType() > 4) // commented out just for
@@ -352,12 +296,62 @@ void Server::executeOperCommand(Message& msg, User& usr)
 
 void Server::executePrivmsgCommand(Message& msg, User& usr)
 {
-	handleMessages(msg.getArgs(), usr.getSocket(), _server);
+	// handleMessages(msg.getArgs(), usr.getSocket(), _server);
+	std::vector<std::string> args = msg.getArgs();
+	std::string channel, message; // possible to have multiple messages?
+	int clientFd = usr.getSocket();
+
+	channel = args[0];
+	message = args[1];
+	if (!channel.empty() && !message.empty()) {
+		std::map<std::string, Channel> &existingChannels = _server->getChannels();
+		auto it = existingChannels.find(channel);
+		if (it != existingChannels.end() && it->second.isUserInChannel(clientFd)) {
+			it->second.displayMessage(clientFd, message);
+		} else {
+			std::string msg = "User " + std::to_string(clientFd) + " is not in channel " + channel + " or channel doesn't exist.\n";
+			Logger::log(Logger::ERROR, msg);
+		}
+	}
+	
 }
 
 void Server::executeJoinCommand(Message& msg, User& usr)
 {
-	joinChannel(msg.getArgs(), usr.getSocket(), _server);
+	// joinChannel(msg.getArgs(), usr.getSocket(), _server);
+	std::vector<std::string> args = msg.getArgs();
+	int clientFd = usr.getSocket();
+	std::vector<std::pair<std::string, std::string>> channelsAndPasswords;
+	std::stringstream ssChannel(args[0]);
+	std::stringstream ssPassword(args.size() > 1 ? args[1] : "");
+	std::string channel, password;
+	while (std::getline(ssChannel, channel, ',')) {
+		if (std::getline(ssPassword, password, ','))
+			channelsAndPasswords.push_back({channel, password});
+		else
+			channelsAndPasswords.push_back({channel, ""});
+	}
+	for (size_t i = 0; i < channelsAndPasswords.size(); i++) {
+		std::string channelName = channelsAndPasswords[i].first;
+		std::string channelPassword = channelsAndPasswords[i].second;
+		if (channelName.empty() || channelName[0] != '#') {
+			std::cout << "Invalid channel name: " << channelName << std::endl;
+			continue;
+		}
+		std::map<std::string, Channel> &existingChannels = _server->getChannels();
+		auto it = existingChannels.find(channelName);
+		if (it == existingChannels.end()) {
+			Channel newChannel(channelName, clientFd);
+			existingChannels.insert({newChannel.getName(), newChannel});
+			Logger::log(Logger::INFO, "user " + std::to_string(clientFd) + " created new channel " + channelName);
+			it = existingChannels.find(channelName);
+		} else {
+			if (it->second.getInviteMode() == false)
+				it->second.addUser(usr, channelPassword);
+			else
+				Logger::log(Logger::WARNING, "channel " + channelName + " is in invite-only mode, user " + std::to_string(clientFd) + "can't join");
+		}
+	}
 }
 
 void Server::executePartCommand(Message& msg, User& usr)
@@ -385,12 +379,93 @@ void Server::executeQuitCommand(Message& msg, User& usr)
 	close(fd);
 }
 
+// maybe all the logs could be moved inside each function
 void Server::executeModeCommand(Message& msg, User& usr)
 {
+	std::vector<std::string> args = msg.getArgs();
+	// for (size_t i= 0; i < args.size(); i++)
+	// 	std::cout << args[i] << std::endl;
+	std::string channel, mode, parameter;
+	channel = args[0];
+	mode = args[1]; // also thi is not gonna work since we can have something like this as input: MODE #example +i +t +l 5
+	parameter = (args.size() == 3 ? args[2] : ""); // i don't like this...to change
+	std::map<std::string, Channel> &existingChannels = _server->getChannels();
+	auto it = existingChannels.find(channel);
+	if (it != existingChannels.end() && it->second.isUserAnOperatorInChannel(usr.getSocket())) {
+		if (mode.find('i') != std::string::npos) {
+			if (mode == "+i") {
+				it->second.setInviteOnly();
+				Logger::log(Logger::DEBUG, "user " + usr.getUsername() + " set invite only mode ON in channel " + channel);
+			}
+			if (mode == "-i") {
+				it->second.unsetInviteOnly();
+				Logger::log(Logger::DEBUG, "user " + usr.getUsername() + " set invite only mode OFF in channel " + channel);
+			}
+		} else if (mode.find('t') != std::string::npos) {
+			if (mode == "+t") {
+				it->second.setRestrictionsOnTopic();
+				Logger::log(Logger::DEBUG, "user " + usr.getUsername() + " set restrictions on topic mode ON in channel " + channel);
+			}
+			if (mode == "-t") {
+				it->second.unsetRestrictionsOnTopic();
+				Logger::log(Logger::DEBUG, "user " + usr.getUsername() + " set restrictions on topic mode OFF in channel " + channel);
+			}
+		} else if (mode.find('k') != std::string::npos) {
+			if (mode == "+k") {
+				it->second.setPassword(parameter);
+				Logger::log(Logger::DEBUG, "user " + usr.getUsername() + " set password in channel " + channel);
+			}
+			if (mode == "-k") {
+				it->second.unsetPasword();
+				Logger::log(Logger::DEBUG, "user " + usr.getUsername() + " removed password in channel " + channel);
+			}
+		} else if (mode.find('o') != std::string::npos) {
+			std::map<int, User> &users = _server->getUsers();
+			for (auto itU = users.begin(); itU != users.end(); itU++) {
+				if (itU->second.getUsername() == parameter) {
+					if (mode == "+o" && it->second.isUserInChannel(itU->second.getSocket())) {
+						it->second.addOperator(itU->second.getSocket());
+						Logger::log(Logger::DEBUG, "user " + usr.getUsername() + " gave operator privilege for channel " + channel + " to user " + usr.getUsername());
+					}
+					if (mode == "-o" && it->second.isUserAnOperatorInChannel(itU->second.getSocket())) {
+						it->second.removeOperator(itU->second.getSocket());
+						Logger::log(Logger::DEBUG, "user " + usr.getUsername() + " revoked operator privilege for channel " + channel + " to user " + usr.getUsername());
+					}
+				}
+			}
+			Logger::log(Logger::DEBUG, "username " + parameter + " not existing or not in channel " + channel);
+		} else if (mode.find('l') != std::string::npos) {
+			if (mode == "+l" && std::stoi(parameter)) {
+				it->second.setUserLimit(std::stoi(parameter)); // to check/protect
+				Logger::log(Logger::DEBUG, "User " + usr.getUsername() + "set channel limit to " + parameter + " users");
+			}
+			if (mode == "-l") {
+				it->second.unsetUserLimit();
+				Logger::log(Logger::DEBUG, "User " + usr.getUsername() + "unset channel limit");
+			}
+		}
+	}
 }
 
 void Server::executeKickCommand(Message& msg, User& usr)
 {
+	std::vector<std::string> args = msg.getArgs();
+	std::string channel, user, reason;
+	channel = args[0];
+	user = args[1];
+	reason = (args.size() == 3 ? args[2] : "");
+	std::map<std::string, Channel> &existingChannels = _server->getChannels();
+	auto it = existingChannels.find(channel);
+	if (it != existingChannels.end() && it->second.isUserAnOperatorInChannel(usr.getSocket())) {
+		std::map<int, User> &users = _server->getUsers();
+		for (auto itU = users.begin(); itU != users.end(); itU++) {
+			if (itU->first == std::stoi(user)) { // to change - just for testing since there is no username
+				std::cout << "or here here?\n";
+				it->second.removeUser(itU->second.getSocket());
+				Logger::log(Logger::DEBUG, "User " + usr.getUsername() + " kicked out user " + itU->second.getUsername() + " from channel " + channel);
+			}
+		}
+	}
 }
 
 void Server::executeNoticeCommand(Message& msg, User& usr)
