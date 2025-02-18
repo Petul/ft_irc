@@ -14,7 +14,9 @@
 
 #include <unistd.h>
 
+#include <algorithm>
 #include <stdexcept>
+#include <string>
 
 #include "Logger.hpp"
 #include "sys/socket.h"
@@ -27,11 +29,16 @@ User::User(int sockfd) : sockfd_{sockfd}
 {
 }
 
-User::User(const User& o)
-    : sockfd_{o.sockfd_}, username_{o.username_}, nick_{o.nick_}
-{
-}
-
+// User::User(const User& o)
+//     : sockfd_{o.sockfd_},
+//       recv_buf_{o.recv_buf_},
+//       registered_{o.registered_},
+//       password_{o.password_},
+//       username_{o.username_},
+//       nick_{o.nick_}
+// {
+// }
+//
 User& User::operator=(const User& o)
 {
 	if (this == &o)
@@ -41,6 +48,9 @@ User& User::operator=(const User& o)
 	this->sockfd_ = o.sockfd_;
 	this->username_ = o.username_;
 	this->nick_ = o.nick_;
+	this->recv_buf_ = o.recv_buf_;
+	this->password_ = o.password_;
+	this->registered_ = o.registered_;
 	return (*this);
 }
 
@@ -50,24 +60,52 @@ User& User::operator=(const User& o)
  * @param buf: buffer to write data to
  * @return 1 if read successful, 0 if socket has been closed
  */
-int User::receiveData(std::string& buf)
+int User::receiveData()
 {
+	std::string buf(1024, 0);
 	int n_bytes =
 	    recv(this->sockfd_, const_cast<char*>(buf.data()), buf.size(), 0);
-	if (n_bytes > 0)
-	{
-		return (1);
-	}
 	// Client closed the connection
-	else if (n_bytes == 0)
+	if (n_bytes == 0)
 	{
 		close(this->sockfd_);
 		return (0);
 	}
-	else
+	if (n_bytes < 0)
 	{
-		throw std::runtime_error{"Error: receiveData"};
+		throw std::runtime_error{"receiveData"};
 	}
+	buf = buf.substr(0, n_bytes);  // Truncate buf to size of data
+	Logger::log(Logger::DEBUG, "Received data from user " +
+	                               std::to_string(sockfd_) + ": " + buf);
+	// Check line break format
+	if (buf.compare(n_bytes - 2, 2, "\r\n") != 0)
+	{
+		throw std::invalid_argument{
+		    "Incorrect line break format, CRLF required"};
+	}
+	recv_buf_ += buf;
+	return (1);
+}
+
+/**
+ * @brief Gets the next CRLF separated message from the recv stream and stores
+ * it in buf. Returns 0 if the recv stream is empty
+ *
+ * @param buf buffer to store message in
+ * @return 0 if recv stream is emtpy
+ */
+int User::getNextMessage(std::string& buf)
+{
+	std::string part;
+	if (recv_buf_.size() == 0)
+	{
+		return (0);
+	}
+	size_t pos = recv_buf_.find("\r\n", 0);
+	buf = recv_buf_.substr(0, pos);
+	recv_buf_.erase(recv_buf_.begin(), recv_buf_.begin() + pos + 2);
+	return (1);
 }
 
 /**

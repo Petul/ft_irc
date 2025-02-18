@@ -21,9 +21,11 @@ class User
 	User(int sockfd);
 	User(const User&);
 	User& operator=(const User&);
+	// ~User();
 
-	int receiveData(std::string& buf);
+	int receiveData();
 	int sendData(std::string& buf);
+	int getNextMessage(std::string& buf);
 
 	std::string& getPassword();
 	void setPassword(std::string& pass);
@@ -41,6 +43,8 @@ class User
 
    private:
 	int sockfd_;
+	std::string recv_buf_;
+	// std::string send_buf_;
 	bool registered_{false};
 	std::string password_;
 	std::string username_;
