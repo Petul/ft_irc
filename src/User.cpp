@@ -6,7 +6,7 @@
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 13:32:51 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/15 18:35:39 by pleander         ###   ########.fr       */
+/*   Updated: 2025/02/18 02:17:51 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,7 @@
 
 #include <stdexcept>
 
+#include "Logger.hpp"
 #include "sys/socket.h"
 
 User::User() : sockfd_{-1}
@@ -77,6 +78,7 @@ int User::receiveData(std::string& buf)
  */
 int User::sendData(std::string& buf)
 {
+	//::send(this->sockfd_, buf.c_str(), buf.length(), 0);
 	int n_bytes =
 	    write(this->sockfd_, const_cast<char*>(buf.data()), buf.size());
 	if (n_bytes < 0)
@@ -84,4 +86,50 @@ int User::sendData(std::string& buf)
 		throw std::runtime_error{"Error: sendData"};
 	}
 	return (n_bytes);
+}
+
+void User::setPassword(std::string& s)
+{
+	password_ = s;
+}
+
+void User::registerUser()
+{
+	Logger::log(Logger::DEBUG, "Registered user " + username_);
+	registered_ = true;
+}
+
+bool User::isRegistered()
+{
+	return (registered_);
+}
+
+std::string& User::getPassword()
+{
+	return (password_);
+}
+
+void User::setNick(std::string& nick)
+{
+	nick_ = nick;
+}
+
+std::string& User::getNick()
+{
+	return (nick_);
+}
+
+void User::setUsername(std::string& username)
+{
+	username_ = username;
+}
+
+std::string& User::getUsername()
+{
+	return (username_);
+}
+
+int User::getSocket()
+{
+	return (sockfd_);
 }

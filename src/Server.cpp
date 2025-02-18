@@ -6,15 +6,19 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 08:39:33 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/17 16:53:37 by mpellegr         ###   ########.fr       */
+/*   Updated: 2025/02/18 07:30:36 by mpellegr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
 
+#include <asm-generic/socket.h>
+#include <netinet/in.h>
 #include <poll.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
+#include <iostream>
 #include <stdexcept>
 #include <vector>
 #include <csignal>
@@ -24,18 +28,19 @@
 #include "netinet/in.h"
 #include "sys/socket.h"
 #include "Channel.hpp"
+#include "Message.hpp"
 
-Server::Server() : Server("default", 8123)
+Server::Server() : Server("default", 8123, "defaultServerName")
 {
 }
 
-Server::Server(std::string server_pass, int server_port)
-	: server_pass_{server_pass}, server_port_{server_port}
+Server::Server(std::string server_pass, int server_port, std::string server_name)
+    : server_pass_{server_pass}, server_port_{server_port}, server_name_{server_name}
 {
 	_server = this;
 }
 
-Server::Server(const Server& o) : Server(o.server_pass_, o.server_port_)
+Server::Server(const Server& o) : Server(o.server_pass_, o.server_port_, o.server_name_)
 {
 }
 
@@ -59,6 +64,23 @@ void Server::handleSignal(int signum) {
 		close(_server->_serverSocket);
 	exit(0);
 }
+const std::map<COMMANDTYPE, Server::executeFunc> Server::execute_map_ = {
+	{ PASS, &Server::executePassCommand },
+	{ NICK, &Server::executeNickCommand },
+	{ USER, &Server::executeUserCommand },
+	{ OPER, &Server::executeOperCommand },
+	{ PRIVMSG, &Server::executePrivmsgCommand },
+	{ JOIN, &Server::executeJoinCommand },
+	{ PART, &Server::executePartCommand },
+	{ INVITE, &Server::executeInviteCommand },
+	{ WHO, &Server::executeWhoCommand },
+	{ QUIT, &Server::executeQuitCommand },
+	{ MODE, &Server::executeModeCommand },
+	{ KICK, &Server::executeKickCommand },
+	{ NOTICE, &Server::executeNoticeCommand },
+	{ TOPIC, &Server::executeTopicCommand },
+	// Extend this list when we have more functions
+};
 
 void Server::startServer()
 {
@@ -78,6 +100,14 @@ void Server::startServer()
 	serverAddr.sin_port = htons(this->server_port_);
 
 	if (bind(_serverSocket, (sockaddr*)&serverAddr, sizeof(serverAddr)) == -1)
+	// int opt{1};
+	// if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt,
+	//                sizeof(opt)))
+	// {
+	// 	throw std::runtime_error("setsockopt");
+	// }
+
+	// if (bind(serverSocket, (sockaddr*)&serverAddr, sizeof(serverAddr)) == -1)
 		throw std::runtime_error("failed to bind socket");
 
 	if (listen(_serverSocket, 5) == -1)
@@ -136,8 +166,16 @@ void Server::startServer()
 					            "Client " + std::to_string(pollFds[i].fd) +
 					                " sent: " + buf);
 
-					// TODO: Do something with the client data
-					parseMessage(buf, pollFds[i].fd, _server);
+					Message msg{buf};
+					try
+					{
+						msg.parseMessage();
+						executeCommand(msg, users_[pollFds[i].fd]);
+					}
+					catch (std::invalid_argument& e)
+					{
+						Logger::log(Logger::WARNING, e.what());
+					}
 				}
 			}
 		}
@@ -148,39 +186,31 @@ void Server::startServer()
 std::map<std::string, Channel> &Server::getChannels() { return _channels; }
 std::map<int, User> &Server::getUsers() { return users_; };
 
-void joinChannel(std::string msg, int clientFd, Server *_server) {
-	std::istringstream iss(msg);
-	std::string cmd, channels;
-
-	iss >> cmd >> channels;
-	std::stringstream ss(channels); 
-	std::string channel;
-	while (std::getline(ss, channel, ',')) {
-		if (channel.empty() || channel[0] != '#') {
-			std::cout << "Invalid channel name: " << channel << std::endl;
+void joinChannel(std::vector<std::string> channels, int clientFd, Server *_server) {
+	for (size_t i = 0; i < channels.size(); i++) {
+		if (channels[i].empty() || channels[i][0] != '#') {
+			std::cout << "Invalid channel name: " << channels[i] << std::endl;
 			continue;
 		}
 		std::map<std::string, Channel> &existingChannels = _server->getChannels();
-		auto it = existingChannels.find(channel);
+		auto it = existingChannels.find(channels[i]);
 		// std::cout << it->first << std::endl;
 		if (it == existingChannels.end()) {
-			Channel newChannel(channel, clientFd);
+			Channel newChannel(channels[i], clientFd);
 			existingChannels.insert({newChannel.getName(), newChannel});
-			Logger::log(Logger::INFO, "created new channel " + channel);
-			it = existingChannels.find(channel);
+			Logger::log(Logger::INFO, "user " + std::to_string(clientFd) + " created new channel " + channels[i]);
+			it = existingChannels.find(channels[i]);
 			// std::cout << "here?\n";
-		}
-		it->second.addUser(clientFd);
+		} else
+			it->second.addUser(clientFd);
 	}
 }
 
-void handleMessages(std::string msg, int clientFd, Server *_server) {
-	std::istringstream iss(msg);
-	std::string cmd, channel, message;
+void handleMessages(std::vector<std::string> messages, int clientFd, Server *_server) {
+	std::string channel, message; // possible to have multile messages?
 
-	iss >> cmd >> channel;
-	std::stringstream ss(channel);
-	std::getline(iss, message);
+	channel = messages[0];
+	message = messages[1];
 	if (!channel.empty() && !message.empty()) {
 		std::map<std::string, Channel> &existingChannels = _server->getChannels();
 		auto it = existingChannels.find(channel);
@@ -193,27 +223,148 @@ void handleMessages(std::string msg, int clientFd, Server *_server) {
 	}
 }
 
-void Server::parseMessage(std::string& msg, int clientFd, Server *_server)
+void Server::executeCommand(Message& msg, User& usr)
 {
-	COMMANDTYPE cmd = getMessageType(msg);
-	if (cmd == JOIN) {
-		joinChannel(msg, clientFd, _server);
-	}
-	else if (cmd == PRIVMSG) {
-		handleMessages(msg, clientFd, _server);
-	}
-	if (cmd == NONE)
+	// if (!usr.isRegistered() && msg.getType() > 4) // commented out just for testing
+	// {
+	// 	return;
+	// }
+    std::map<COMMANDTYPE, executeFunc>::const_iterator it = execute_map_.find(msg.getType());
+    if (it != execute_map_.end())
+    {
+        (this->*(it->second))(msg, usr);
+    }
+    else
+    {
+        throw std::invalid_argument("Unsupported command");
+    }
+}
+
+//this is actually not good. It's easier to hardcode all the different RPL & ERR msgs.
+void Server::sendReply(User& usr, int numeric, const std::string& command, const std::string& message)
+{
+	std::ostringstream oss;
+	oss << ":" << server_name_ << " " 
+		<< numeric << " " 
+		<< usr.getNick() << " " 
+		<< command << " :" 
+		<< message;
+	std::string reply = oss.str();
+	usr.sendData(reply);
+}
+
+void Server::executePassCommand(Message& msg, User& usr)
+{
+	if (msg.getArgs().size() != 1)
 	{
-		Logger::log(Logger::ERROR, "Invalid command: " + msg);
+		throw std::invalid_argument{"Invalid number of arguments"};
+	}
+	usr.setPassword(msg.getArgs()[0]);
+	Logger::log(Logger::DEBUG, "Set user password to " + msg.getArgs()[0]);
+}
+
+void Server::executeNickCommand(Message& msg, User& usr)
+{
+	if (msg.getArgs().size() != 1)
+	{
+		throw std::invalid_argument{"Invalid number of arguments"};
+	}
+	usr.setNick(msg.getArgs()[0]);
+	if (!usr.isRegistered())
+	{
+		attemptRegistration(usr);
 	}
 }
 
-COMMANDTYPE Server::getMessageType(std::string& msg)
+void Server::executeUserCommand(Message& msg, User& usr)
 {
-	if (msg.compare(0, 5, "PASS ") == 0) return (PASS);
-	if (msg.compare(0, 5, "NICK ") == 0) return (NICK);
-	if (msg.compare(0, 5, "USER ") == 0) return (USER);
-	if (msg.compare(0, 5, "JOIN ") == 0) return (JOIN);
-	if (msg.compare(0, 8, "PRIVMSG ") == 0) return (PRIVMSG);
-	return (NONE);
+	if (msg.getArgs().size() != 4)
+	{
+		throw std::invalid_argument{"Invalid number of arguments"};
+	}
+	usr.setUsername(msg.getArgs().front());
+	if (!usr.isRegistered())
+	{
+		attemptRegistration(usr);
+	}
+}
+
+void Server::attemptRegistration(User& usr)
+{
+	if (usr.getPassword().size() == 0 || usr.getNick().size() == 0 ||
+	    usr.getUsername().size() == 0)
+	{
+		return;
+	}
+	if (usr.getPassword() == server_pass_)
+	{
+		usr.registerUser();
+	}
+	else
+	{
+		throw std::invalid_argument{"Invalid password"};
+	}
+}
+
+// Maybe this bloat will get moved to individual .cpp files
+void Server::executeOperCommand(Message& msg, User& usr)
+{
+
+}
+
+void Server::executePrivmsgCommand(Message& msg, User& usr)
+{
+	handleMessages(msg.getArgs(), usr.getSocket(), _server);
+}
+
+void Server::executeJoinCommand(Message& msg, User& usr)
+{
+	joinChannel(msg.getArgs(), usr.getSocket(), _server);
+}
+
+void Server::executePartCommand(Message& msg, User& usr)
+{
+
+}
+
+void Server::executeInviteCommand(Message& msg, User& usr)
+{
+
+}
+
+void Server::executeWhoCommand(Message& msg, User& usr)
+{
+
+}
+
+void Server::executeQuitCommand(Message& msg, User& usr)
+{
+	std::string quitMessage = (msg.getArgs().empty() ? "Quit" : msg.getArgs()[0]);
+	// Handle leaving from channels and broadcasting the quit message there as well.
+	// some loop to go trough user channels
+	//
+	// need some proper way to disconnect gracefully and handle the pollfd.
+	int fd = usr.getSocket();
+	users_.erase(fd);
+	close(fd);
+}
+
+void Server::executeModeCommand(Message& msg, User& usr)
+{
+
+}
+
+void Server::executeKickCommand(Message& msg, User& usr)
+{
+
+}
+
+void Server::executeNoticeCommand(Message& msg, User& usr)
+{
+
+}
+
+void Server::executeTopicCommand(Message& msg, User& usr)
+{
+
 }

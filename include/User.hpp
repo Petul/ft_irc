@@ -6,7 +6,7 @@
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 12:56:56 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/14 15:43:33 by pleander         ###   ########.fr       */
+/*   Updated: 2025/02/18 02:17:45 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,10 +24,20 @@ class User
 
 	int receiveData(std::string& buf);
 	int sendData(std::string& buf);
+
+	std::string& getPassword();
 	void setPassword(std::string& pass);
+
+	std::string& getNick();
 	void setNick(std::string& nick);
+
+	std::string& getUsername();
 	void setUsername(std::string& username);
-	bool registerUser();
+
+	int getSocket();
+
+	void registerUser();
+	bool isRegistered();
 
    private:
 	int sockfd_;

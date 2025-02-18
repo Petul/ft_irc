@@ -6,12 +6,16 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/15 15:58:57 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/17 15:46:07 by mpellegr         ###   ########.fr       */
+/*   Updated: 2025/02/18 06:37:27 by mpellegr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+#pragma once
+
+#include <sstream>
 #include <string>
 #include <vector>
+#include <map>
 
 enum COMMANDTYPE
 {
@@ -19,20 +23,37 @@ enum COMMANDTYPE
 	PASS,
 	NICK,
 	USER,
+	OPER,
+	PRIVMSG,
 	JOIN,
-	PRIVMSG
+	PART,
+	INVITE,
+	WHO,
+	QUIT,
+	MODE,
+	KICK,
+	NOTICE,
+	TOPIC,
 	// Add more
-
 };
 
-// class Message
-// {
-//    public:
-// 	Message();
-//
-//       parseMesasge()
-//
-//    private:
-// 	COMMAND cmd;
-// 	std::vector<std::string> args;
-// };
+// https://www.rfc-editor.org/rfc/rfc2812.html#section-2.3
+// Server does not handle server-to-server communication and thus prefix is not
+// supported
+class Message
+{
+   public:
+	Message(std::string& raw_msg);
+
+	void parseMessage();
+	COMMANDTYPE getType();
+	std::vector<std::string>& getArgs();
+
+   private:
+	void parseType();
+	std::string raw_message_;
+	std::stringstream msg_ss_;
+	COMMANDTYPE cmd_type_;
+	std::vector<std::string> args_;
+	static const std::map<std::string, COMMANDTYPE> command_map_;
+};
