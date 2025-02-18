@@ -27,4 +27,7 @@ class Logger
 	};
 	static void log(enum LEVEL lvl, std::string msg);
 	static const std::chrono::system_clock::time_point start_time_;
+
+   private:
+	static void cleanMessage(std::string &msg);
 };
