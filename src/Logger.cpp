@@ -12,10 +12,19 @@ void Logger::log(enum LEVEL lvl, std::string msg)
 	auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(
 	                std::chrono::system_clock::now() - start_time_)
 	                .count();
+	cleanMessage(msg);
 	if (lvl == DEBUG) std::cout << diff << " [DEBUG] ";
 	if (lvl == INFO) std::cout << diff << " [INFO] ";
 	if (lvl == WARNING) std::cout << diff << " [WARNING] ";
 	if (lvl == ERROR) std::cout << diff << " [ERROR] ";
 
 	std::cout << msg << std::endl;
+}
+
+void Logger::cleanMessage(std::string &msg)
+{
+	while (msg.back() == '\n' || msg.back() == '\r')
+	{
+		msg.pop_back();
+	}
 }
