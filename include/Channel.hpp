@@ -48,6 +48,7 @@ public:
 
 	void addOperator(int userFd);
 	void removeOperator(int userFd);
+	void removeUser(int userFd);
 };
 
 // void joinChannel(std::string msg, int clientFd, Server *_server);

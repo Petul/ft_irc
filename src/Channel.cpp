@@ -73,3 +73,4 @@ void Channel::unsetRestrictionsOnTopic() { _restrictionsOnTopic = false; }
 
 void Channel::addOperator(int userFd) { _operators.insert(userFd); }
 void Channel::removeOperator(int userFd) { _operators.erase(userFd); }
+void Channel::removeUser(int userFd) { _users.erase(userFd); }
