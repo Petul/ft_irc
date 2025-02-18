@@ -23,13 +23,14 @@ private:
 	bool _restrictionsOnTopic;
 	std::string _topic;
 	std::string _password;
-	int _userLimit;
+	size_t _userLimit;
 public:
 	Channel(std::string name, int cretorFd);
 	~Channel();
 
 	std::string getName() const;
 	bool getInviteMode() const;
+	std::string getTopic() const;
 
 	void addUser(User &usr, std::string channelPassword);
 	void displayMessage(int senderFd, std::string msg);
@@ -42,6 +43,8 @@ public:
 	void unsetUserLimit();
 	void setPassword(std::string password);
 	void unsetPasword();
+	void setRestrictionsOnTopic();
+	void unsetRestrictionsOnTopic();
 
 	void addOperator(int userFd);
 	void removeOperator(int userFd);

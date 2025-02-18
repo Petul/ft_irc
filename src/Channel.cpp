@@ -12,6 +12,7 @@ Channel::~Channel() {}
 
 std::string Channel::getName() const { return _name; }
 bool Channel::getInviteMode() const { return _isInviteOnly; }
+std::string Channel::getTopic() const { return _topic; }
 
 void Channel::addUser(User &usr, std::string channelPassword) {
 	int userFd = usr.getSocket();
@@ -29,9 +30,10 @@ void Channel::addUser(User &usr, std::string channelPassword) {
 			std::string msg = "User " + std::to_string(userFd) + " already in " + _name;
 			Logger::log(Logger::INFO, msg);
 		}
+	} else {
+		std::string msg = "Can't add user " + std::to_string(userFd) + " because reached user limit " + std::to_string(_userLimit);
+		Logger::log(Logger::WARNING, msg);
 	}
-	std::string msg = "Can't add user " + std::to_string(userFd) + " because reached user limit " + std::to_string(_userLimit);
-	Logger::log(Logger::WARNING, msg);
 }
 
 bool Channel::isUserInChannel(int userFd) {
@@ -66,6 +68,8 @@ void Channel::setUserLimit(int limit) {
 void Channel::unsetUserLimit() { _userLimit = MAX_USERS; }
 void Channel::setPassword(std::string password) { _password = password; }
 void Channel::unsetPasword() { _password = ""; }
+void Channel::setRestrictionsOnTopic() { _restrictionsOnTopic = true; }
+void Channel::unsetRestrictionsOnTopic() { _restrictionsOnTopic = false; }
 
 void Channel::addOperator(int userFd) { _operators.insert(userFd); }
 void Channel::removeOperator(int userFd) { _operators.erase(userFd); }

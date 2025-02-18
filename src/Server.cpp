@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 08:39:33 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/18 11:59:37 by mpellegr         ###   ########.fr       */
+/*   Updated: 2025/02/18 14:13:15 by mpellegr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -395,48 +395,70 @@ void Server::executeQuitCommand(Message& msg, User& usr)
 	close(fd);
 }
 
+// maybe all the logs could be moved inside each function
 void Server::executeModeCommand(Message& msg, User& usr)
 {
 	std::vector<std::string> args = msg.getArgs();
-	for (size_t i= 0; i < args.size(); i++)
-		std::cout << args[i] << std::endl;
+	// for (size_t i= 0; i < args.size(); i++)
+	// 	std::cout << args[i] << std::endl;
 	std::string channel, mode, parameter;
 	channel = args[0];
 	mode = args[1]; // also thi is not gonna work since we can have something like this as input: MODE #example +i +t +l 5
-	parameter = (!args[2].empty() ? args[2] : ""); // i don't like this...to change
+	parameter = (args.size() == 3 ? args[2] : ""); // i don't like this...to change
 	std::map<std::string, Channel> &existingChannels = _server->getChannels();
 	auto it = existingChannels.find(channel);
 	if (it != existingChannels.end() && it->second.isUserAnOperatorInChannel(usr.getSocket())) {
-		if (mode.find('i')) {
+		if (mode.find('i') != std::string::npos) {
 			if (mode == "+i") {
-				if (it->second.getInviteMode() == false)
-					it->second.setInviteOnly();
-			} if (mode == "-i") {
-				if (it->second.getInviteMode() == true)
-					it->second.unsetInviteOnly();
+				it->second.setInviteOnly();
+				Logger::log(Logger::DEBUG, "user " + usr.getUsername() + " set invite only mode ON in channel " + channel);
 			}
-		} else if (mode.find('t')) {
-			
-		} else if (mode.find('k')) {
+			if (mode == "-i") {
+				it->second.unsetInviteOnly();
+				Logger::log(Logger::DEBUG, "user " + usr.getUsername() + " set invite only mode OFF in channel " + channel);
+			}
+		} else if (mode.find('t') != std::string::npos) {
+			if (mode == "+t") {
+				it->second.setRestrictionsOnTopic();
+				Logger::log(Logger::DEBUG, "user " + usr.getUsername() + " set restrictions on topic mode ON in channel " + channel);
+			}
+			if (mode == "-t") {
+				it->second.unsetRestrictionsOnTopic();
+				Logger::log(Logger::DEBUG, "user " + usr.getUsername() + " set restrictions on topic mode OFF in channel " + channel);
+			}
+		} else if (mode.find('k') != std::string::npos) {
 			if (mode == "+k") {
-				
+				it->second.setPassword(parameter);
+				Logger::log(Logger::DEBUG, "user " + usr.getUsername() + " set password in channel " + channel);
 			}
-		} else if (mode.find('o')) {
+			if (mode == "-k") {
+				it->second.unsetPasword();
+				Logger::log(Logger::DEBUG, "user " + usr.getUsername() + " removed password in channel " + channel);
+			}
+		} else if (mode.find('o') != std::string::npos) {
 			std::map<int, User> &users = _server->getUsers();
 			for (auto itU = users.begin(); itU != users.end(); it++) {
 				if (itU->second.getUsername() == parameter) {
-					if (mode == "+o" && it->second.isUserInChannel(itU->second.getSocket()))
+					if (mode == "+o" && it->second.isUserInChannel(itU->second.getSocket())) {
 						it->second.addOperator(itU->second.getSocket());
-					if (mode == "-o" && it->second.isUserAnOperatorInChannel(itU->second.getSocket()))
+						Logger::log(Logger::DEBUG, "user " + usr.getUsername() + " gave operator privilege for channel " + channel + " to user " + usr.getUsername());
+					}
+					if (mode == "-o" && it->second.isUserAnOperatorInChannel(itU->second.getSocket())) {
 						it->second.removeOperator(itU->second.getSocket());
+						Logger::log(Logger::DEBUG, "user " + usr.getUsername() + " revoked operator privilege for channel " + channel + " to user " + usr.getUsername());
+					}
 				}
 			}
 			Logger::log(Logger::DEBUG, "username " + parameter + " not existing or not in channel " + channel);
-		} else if (mode.find('l')) {
-			if (mode == "+l" && std::stoi(parameter))
+		} else if (mode.find('l') != std::string::npos) {
+			if (mode == "+l" && std::stoi(parameter)) {
 				it->second.setUserLimit(std::stoi(parameter)); // to check/protect
-			if (mode == "-l")
+				Logger::log(Logger::DEBUG, "User " + usr.getUsername() + "set channel limit to " + parameter + " users");
+			}
+			if (mode == "-l") {
 				it->second.unsetUserLimit();
+				Logger::log(Logger::DEBUG, "User " + usr.getUsername() + "unset channel limit");
+			}
 		}
 	}
 }
