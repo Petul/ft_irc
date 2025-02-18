@@ -6,7 +6,7 @@
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 08:39:33 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/17 18:07:21 by pleander         ###   ########.fr       */
+/*   Updated: 2025/02/18 03:30:17 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,16 +25,16 @@
 #include "Logger.hpp"
 #include "Message.hpp"
 
-Server::Server() : Server("default", 8123)
+Server::Server() : Server("default", 8123, "defaultServerName")
 {
 }
 
-Server::Server(std::string server_pass, int server_port)
-    : server_pass_{server_pass}, server_port_{server_port}
+Server::Server(std::string server_pass, int server_port, std::string server_name)
+    : server_pass_{server_pass}, server_port_{server_port}, server_name_{server_name}
 {
 }
 
-Server::Server(const Server& o) : Server(o.server_pass_, o.server_port_)
+Server::Server(const Server& o) : Server(o.server_pass_, o.server_port_, o.server_name_)
 {
 }
 
@@ -48,6 +48,24 @@ Server& Server::operator=(const Server& o)
 	this->server_pass_ = o.server_pass_;
 	return (*this);
 }
+
+const std::map<COMMANDTYPE, Server::executeFunc> Server::execute_map_ = {
+	{ PASS, &Server::executePassCommand },
+	{ NICK, &Server::executeNickCommand },
+	{ USER, &Server::executeUserCommand },
+	{ OPER, &Server::executeOperCommand },
+	{ PRIVMSG, &Server::executePrivmsgCommand },
+	{ JOIN, &Server::executeJoinCommand },
+	{ PART, &Server::executePartCommand },
+	{ INVITE, &Server::executeInviteCommand },
+	{ WHO, &Server::executeWhoCommand },
+	{ QUIT, &Server::executeQuitCommand },
+	{ MODE, &Server::executeModeCommand },
+	{ KICK, &Server::executeKickCommand },
+	{ NOTICE, &Server::executeNoticeCommand },
+	{ TOPIC, &Server::executeTopicCommand },
+	// Extend this list when we have more functions
+};
 
 void Server::startServer()
 {
@@ -144,18 +162,32 @@ void Server::startServer()
 
 void Server::executeCommand(Message& msg, User& usr)
 {
-	if (msg.getType() == PASS)
+	if (!usr.isRegistered() && msg.getType() > 4)
 	{
-		executePassCommand(msg, usr);
+		return;
 	}
-	else if (msg.getType() == USER)
-	{
-		executeUserCommand(msg, usr);
-	}
-	else if (msg.getType() == NICK)
-	{
-		executeNickCommand(msg, usr);
-	}
+    std::map<COMMANDTYPE, executeFunc>::const_iterator it = execute_map_.find(msg.getType());
+    if (it != execute_map_.end())
+    {
+        (this->*(it->second))(msg, usr);
+    }
+    else
+    {
+        throw std::invalid_argument("Unsupported command");
+    }
+}
+
+//this is actually not good. It's easier to hardcode all the different RPL & ERR msgs.
+void Server::sendReply(User& usr, int numeric, const std::string& command, const std::string& message)
+{
+	std::ostringstream oss;
+	oss << ":" << server_name_ << " " 
+		<< numeric << " " 
+		<< usr.getNick() << " " 
+		<< command << " :" 
+		<< message;
+	std::string reply = oss.str();
+	usr.sendData(reply);
 }
 
 void Server::executePassCommand(Message& msg, User& usr)
@@ -209,4 +241,67 @@ void Server::attemptRegistration(User& usr)
 	{
 		throw std::invalid_argument{"Invalid password"};
 	}
+}
+
+// Maybe this bloat will get moved to individual .cpp files
+void Server::executeOperCommand(Message& msg, User& usr)
+{
+
+}
+
+void Server::executePrivmsgCommand(Message& msg, User& usr)
+{
+
+}
+
+void Server::executeJoinCommand(Message& msg, User& usr)
+{
+
+}
+
+void Server::executePartCommand(Message& msg, User& usr)
+{
+
+}
+
+void Server::executeInviteCommand(Message& msg, User& usr)
+{
+
+}
+
+void Server::executeWhoCommand(Message& msg, User& usr)
+{
+
+}
+
+void Server::executeQuitCommand(Message& msg, User& usr)
+{
+	std::string quitMessage = (msg.getArgs().empty() ? "Quit" : msg.getArgs()[0]);
+	// Handle leaving from channels and broadcasting the quit message there as well.
+	// some loop to go trough user channels
+	//
+	// need some proper way to disconnect gracefully and handle the pollfd.
+	int fd = usr.getSocket();
+	users_.erase(fd);
+	close(fd);
+}
+
+void Server::executeModeCommand(Message& msg, User& usr)
+{
+
+}
+
+void Server::executeKickCommand(Message& msg, User& usr)
+{
+
+}
+
+void Server::executeNoticeCommand(Message& msg, User& usr)
+{
+
+}
+
+void Server::executeTopicCommand(Message& msg, User& usr)
+{
+
 }

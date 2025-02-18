@@ -6,7 +6,7 @@
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/15 15:58:57 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/17 13:35:25 by pleander         ###   ########.fr       */
+/*   Updated: 2025/02/18 00:22:15 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <map>
 
 enum COMMANDTYPE
 {
@@ -22,8 +23,18 @@ enum COMMANDTYPE
 	PASS,
 	NICK,
 	USER,
+	OPER,
+	PRIVMSG,
+	JOIN,
+	PART,
+	INVITE,
+	WHO,
+	QUIT,
+	MODE,
+	KICK,
+	NOTICE,
+	TOPIC,
 	// Add more
-
 };
 
 // https://www.rfc-editor.org/rfc/rfc2812.html#section-2.3
@@ -44,4 +55,5 @@ class Message
 	std::stringstream msg_ss_;
 	COMMANDTYPE cmd_type_;
 	std::vector<std::string> args_;
+	static const std::map<std::string, COMMANDTYPE> command_map_;
 };

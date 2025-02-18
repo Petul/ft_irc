@@ -6,7 +6,7 @@
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 13:30:16 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/14 13:31:05 by pleander         ###   ########.fr       */
+/*   Updated: 2025/02/18 02:29:14 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,6 @@
 
 int main(void)
 {
-	Server server("foo", 8123);
+	Server server("foo", 8123, "fooServer");
 	server.startServer();
 }

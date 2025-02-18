@@ -6,7 +6,7 @@
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 12:56:56 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/17 17:57:17 by pleander         ###   ########.fr       */
+/*   Updated: 2025/02/18 02:17:45 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,6 +33,8 @@ class User
 
 	std::string& getUsername();
 	void setUsername(std::string& username);
+
+	int getSocket();
 
 	void registerUser();
 	bool isRegistered();

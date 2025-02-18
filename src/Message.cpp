@@ -6,7 +6,7 @@
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/17 08:06:20 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/17 17:20:56 by pleander         ###   ########.fr       */
+/*   Updated: 2025/02/18 03:06:13 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,23 @@ Message::Message(std::string& raw_message)
     : raw_message_{raw_message}, msg_ss_{raw_message}
 {
 }
+
+const std::map<std::string, COMMANDTYPE> Message::command_map_ = {
+	{"PASS", PASS},
+	{"NICK", NICK},
+	{"USER", USER},
+	{"OPER", OPER},
+	{"PRIVMSG", PRIVMSG},
+	{"JOIN", JOIN},
+	{"PART", PART},
+	{"INVITE", INVITE},
+	{"WHO", WHO},
+	{"QUIT", QUIT},
+	{"MODE", MODE},
+	{"KICK", KICK},
+	{"NOTICE", NOTICE},
+	{"TOPIC", TOPIC}
+};
 
 void Message::parseMessage()
 {
@@ -54,18 +71,11 @@ void Message::parseType()
 {
 	std::string command;
 	msg_ss_ >> command;
-	if (command == "PASS")
+	auto it = command_map_.find(command);
+	if (it != command_map_.end())
 	{
-		cmd_type_ = PASS;
-	}
-	else if (command == "NICK")
-	{
-		cmd_type_ = NICK;
-	}
-	else if (command == "USER")
-	{
-		cmd_type_ = USER;
-	}
+		cmd_type_ = it->second;
+	} 
 	else
 	{
 		throw std::invalid_argument("Invalid command: " + command);

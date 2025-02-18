@@ -6,7 +6,7 @@
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 13:32:51 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/17 18:05:50 by pleander         ###   ########.fr       */
+/*   Updated: 2025/02/18 02:17:51 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -78,6 +78,7 @@ int User::receiveData(std::string& buf)
  */
 int User::sendData(std::string& buf)
 {
+	//::send(this->sockfd_, buf.c_str(), buf.length(), 0);
 	int n_bytes =
 	    write(this->sockfd_, const_cast<char*>(buf.data()), buf.size());
 	if (n_bytes < 0)
@@ -126,4 +127,9 @@ void User::setUsername(std::string& username)
 std::string& User::getUsername()
 {
 	return (username_);
+}
+
+int User::getSocket()
+{
+	return (sockfd_);
 }
