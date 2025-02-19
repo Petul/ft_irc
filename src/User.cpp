@@ -6,7 +6,7 @@
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 13:32:51 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/18 02:17:51 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/18 23:37:10 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -114,7 +114,7 @@ int User::getNextMessage(std::string& buf)
  * @param buf: data to send
  * @return bytes written or throw error
  */
-int User::sendData(std::string& buf)
+int User::sendData(const std::string& buf)
 {
 	//::send(this->sockfd_, buf.c_str(), buf.length(), 0);
 	int n_bytes =

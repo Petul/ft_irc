@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/13 16:26:34 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/18 06:42:09 by mpellegr         ###   ########.fr       */
+/*   Updated: 2025/02/19 00:27:16 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,7 @@
 // class Channel;  // Temp
 
 #define PASS_MIN_LEN 4
+#define SERVER_VER "0.1"
 
 #include <map>
 #include <string>
@@ -22,6 +23,7 @@
 #include "Message.hpp"
 #include "User.hpp"
 #include "Channel.hpp"
+#include "replies.hpp"
 
 class Channel;
 
@@ -44,6 +46,7 @@ class Server
 	static const std::map<COMMANDTYPE, executeFunc> execute_map_;
 	void executeCommand(Message& msg, User& usr);
 	void executePassCommand(Message& msg, User& usr);
+	bool isNickInUse(std::string& nick);
 	void executeNickCommand(Message& msg, User& usr);
 	void executeUserCommand(Message& msg, User& usr);
 	void attemptRegistration(User& usr);
@@ -58,6 +61,8 @@ class Server
 	void executeKickCommand(Message& msg, User& usr);
 	void executeNoticeCommand(Message& msg, User& usr);
 	void executeTopicCommand(Message& msg, User& usr);
+	void executePingCommand(Message& msg, User& usr);
+	void executePongCommand(Message& msg, User& usr);
 	std::string server_name_;
 	std::string server_pass_;
 	int server_port_;

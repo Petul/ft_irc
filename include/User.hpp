@@ -6,7 +6,7 @@
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 12:56:56 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/18 02:17:45 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/18 23:37:15 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,7 +24,7 @@ class User
 	// ~User();
 
 	int receiveData();
-	int sendData(std::string& buf);
+	int sendData(const std::string& buf);
 	int getNextMessage(std::string& buf);
 
 	std::string& getPassword();

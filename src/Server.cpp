@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 08:39:33 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/18 15:39:02 by mpellegr         ###   ########.fr       */
+/*   Updated: 2025/02/19 03:32:47 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,7 @@
 #include "Logger.hpp"
 #include "Message.hpp"
 #include "netinet/in.h"
+#include "replies.hpp"
 #include "sys/socket.h"
 
 Server::Server() : Server("default", 8123, "defaultServerName")
@@ -82,6 +83,8 @@ const std::map<COMMANDTYPE, Server::executeFunc> Server::execute_map_ = {
     {KICK, &Server::executeKickCommand},
     {NOTICE, &Server::executeNoticeCommand},
     {TOPIC, &Server::executeTopicCommand},
+    {PING, &Server::executePingCommand},
+    {PONG, &Server::executePongCommand}
     // Extend this list when we have more functions
 };
 
@@ -224,33 +227,62 @@ void Server::executeCommand(Message& msg, User& usr)
 	}
 }
 
-// this is actually not good. It's easier to hardcode all the different RPL &
-// ERR msgs.
-void Server::sendReply(User& usr, int numeric, const std::string& command,
-                       const std::string& message)
-{
-	std::ostringstream oss;
-	oss << ":" << server_name_ << " " << numeric << " " << usr.getNick() << " "
-	    << command << " :" << message;
-	std::string reply = oss.str();
-	usr.sendData(reply);
-}
-
 void Server::executePassCommand(Message& msg, User& usr)
 {
+	/*Numeric Replies:*/
+	/**/
+	/*	✓  ERR_NEEDMOREPARAMS            ✓  ERR_ALREADYREGISTRED*/
+
 	if (msg.getArgs().size() != 1)
 	{
+		usr.sendData(errNeedMoreParams(server_name_, usr.getNick(), "PASS"));
 		throw std::invalid_argument{"Invalid number of arguments"};
+	}
+	else if (usr.isRegistered())
+	{
+		usr.sendData(errAlreadyRegistered());
 	}
 	usr.setPassword(msg.getArgs()[0]);
 	Logger::log(Logger::DEBUG, "Set user password to " + msg.getArgs()[0]);
 }
 
+bool Server::isNickInUse(std::string& nick)
+{
+	for (auto& entry : users_)
+	{
+		if (entry.second.getNick() == nick)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 void Server::executeNickCommand(Message& msg, User& usr)
 {
+	// We need to handle these possible errors.
+	/*Numeric Replies:*/
+	/**/
+	/*       ✓  ERR_NONICKNAMEGIVEN             ERR_ERRONEUSNICKNAME*/
+	/*       ✓  ERR_NICKNAMEINUSE               ERR_NICKCOLLISION*/
+	/*          ERR_UNAVAILRESOURCE             ERR_RESTRICTED*/
+
 	if (msg.getArgs().size() != 1)
 	{
-		throw std::invalid_argument{"Invalid number of arguments"};
+		usr.sendData(errNoNicknameGiven(server_name_, ""));
+		//return;
+		throw std::invalid_argument{"No nick name given"};
+	}
+	std::string newNick = msg.getArgs()[0];
+	if (isNickInUse(newNick))
+	{
+		usr.sendData(errNicknameInUse(server_name_, newNick));
+		//return;
+		throw std::invalid_argument{"Nick already in use"};
+	}
+	if (!usr.getNick().empty())
+	{
+		usr.sendData(rplNickChange(usr.getNick(), usr.getUsername(), "TODO:MAKEGETHOST", newNick));
 	}
 	usr.setNick(msg.getArgs()[0]);
 	if (!usr.isRegistered())
@@ -261,14 +293,23 @@ void Server::executeNickCommand(Message& msg, User& usr)
 
 void Server::executeUserCommand(Message& msg, User& usr)
 {
+
+	/*Numeric Replies:*/
+	/**/
+	/*	✓  ERR_NEEDMOREPARAMS            ✓  ERR_ALREADYREGISTRED*/
 	if (msg.getArgs().size() != 4)
 	{
+		usr.sendData(errNeedMoreParams(server_name_, usr.getNick(), "USER"));
 		throw std::invalid_argument{"Invalid number of arguments"};
 	}
 	usr.setUsername(msg.getArgs().front());
 	if (!usr.isRegistered())
 	{
 		attemptRegistration(usr);
+	}
+	else
+	{
+		usr.sendData(errAlreadyRegistered());
 	}
 }
 
@@ -282,6 +323,11 @@ void Server::attemptRegistration(User& usr)
 	if (usr.getPassword() == server_pass_)
 	{
 		usr.registerUser();
+		//TODO: make usr.getMddes(), getChannelModes() usr.getHost() and date
+		usr.sendData(rplWelcome(server_name_, usr.getNick(), usr.getUsername(), "usr.getHost()"));
+		usr.sendData(rplYourHost(server_name_, usr.getNick(), SERVER_VER));
+		usr.sendData(rplCreated(server_name_, usr.getNick(), "today")); //maybe we need date.
+		usr.sendData(rplMyInfo(server_name_, usr.getNick(), SERVER_VER, "usr.getModes()", "getChannelModes()"));
 	}
 	else
 	{
@@ -291,11 +337,24 @@ void Server::attemptRegistration(User& usr)
 
 // Maybe this bloat will get moved to individual .cpp files
 void Server::executeOperCommand(Message& msg, User& usr)
-{
+{ 
+	/*Numeric Replies:*/
+	/**/
+	/*	ERR_NEEDMOREPARAMS              RPL_YOUREOPER*/
+	/*	ERR_NOOPERHOST                  ERR_PASSWDMISMATCH*/
 }
 
 void Server::executePrivmsgCommand(Message& msg, User& usr)
 {
+
+	/*Numeric Replies:*/
+	/**/
+	/*	ERR_NORECIPIENT                 ERR_NOTEXTTOSEND*/
+	/*	ERR_CANNOTSENDTOCHAN            ERR_NOTOPLEVEL*/
+	/*	ERR_WILDTOPLEVEL                ERR_TOOMANYTARGETS*/
+	/*	ERR_NOSUCHNICK*/
+	/*	RPL_AWAY*/
+
 	// handleMessages(msg.getArgs(), usr.getSocket(), _server);
 	std::vector<std::string> args = msg.getArgs();
 	std::string channel, message; // possible to have multiple messages?
@@ -317,7 +376,15 @@ void Server::executePrivmsgCommand(Message& msg, User& usr)
 }
 
 void Server::executeJoinCommand(Message& msg, User& usr)
-{
+{ 
+	/*Numeric Replies:*/
+	/**/
+	/*          ERR_NEEDMOREPARAMS              ERR_BANNEDFROMCHAN*/
+	/*          ERR_INVITEONLYCHAN              ERR_BADCHANNELKEY*/
+	/*          ERR_CHANNELISFULL               ERR_BADCHANMASK*/
+	/*          ERR_NOSUCHCHANNEL               ERR_TOOMANYCHANNELS*/
+	/*          ERR_TOOMANYTARGETS              ERR_UNAVAILRESOURCE*/
+	/*          RPL_TOPIC*/
 	// joinChannel(msg.getArgs(), usr.getSocket(), _server);
 	std::vector<std::string> args = msg.getArgs();
 	int clientFd = usr.getSocket();
@@ -356,24 +423,22 @@ void Server::executeJoinCommand(Message& msg, User& usr)
 
 void Server::executePartCommand(Message& msg, User& usr)
 {
-}
+	/*Numeric Replies:*/
+	/**/
+	/*	ERR_NEEDMOREPARAMS              ERR_NOSUCHCHANNEL*/
+	/*	ERR_NOTONCHANNEL*/
 
-void Server::executeInviteCommand(Message& msg, User& usr)
-{
-}
-
-void Server::executeWhoCommand(Message& msg, User& usr)
-{
 }
 
 void Server::executeQuitCommand(Message& msg, User& usr)
 {
 	std::string quitMessage =
 	    (msg.getArgs().empty() ? "Quit" : msg.getArgs()[0]);
-	// Handle leaving from channels and broadcasting the quit message there as
+	//TODO: Handle leaving from channels and broadcasting the quit message there as
 	// well. some loop to go trough user channels
 	//
 	// need some proper way to disconnect gracefully and handle the pollfd.
+	usr.sendData(rplQuit(usr.getNick(), quitMessage));
 	int fd = usr.getSocket();
 	users_.erase(fd);
 	close(fd);
@@ -382,6 +447,17 @@ void Server::executeQuitCommand(Message& msg, User& usr)
 // maybe all the logs could be moved inside each function
 void Server::executeModeCommand(Message& msg, User& usr)
 {
+
+	/*Numeric Replies:*/
+	/**/
+	/*	ERR_NEEDMOREPARAMS              ERR_KEYSET*/
+	/*	ERR_NOCHANMODES                 ERR_CHANOPRIVSNEEDED*/
+	/*	ERR_USERNOTINCHANNEL            ERR_UNKNOWNMODE*/
+	/*	RPL_CHANNELMODEIS*/
+	/*	RPL_BANLIST                     RPL_ENDOFBANLIST*/
+	/*	RPL_EXCEPTLIST                  RPL_ENDOFEXCEPTLIST*/
+	/*	RPL_INVITELIST                  RPL_ENDOFINVITELIST*/
+	/*	RPL_UNIQOPIS*/
 	std::vector<std::string> args = msg.getArgs();
 	// for (size_t i= 0; i < args.size(); i++)
 	// 	std::cout << args[i] << std::endl;
@@ -447,8 +523,35 @@ void Server::executeModeCommand(Message& msg, User& usr)
 	}
 }
 
+void Server::executeTopicCommand(Message& msg, User& usr)
+{
+	/*Numeric Replies:*/
+	/**/
+	/*	ERR_NEEDMOREPARAMS              ERR_NOTONCHANNEL*/
+	/*	RPL_NOTOPIC                     RPL_TOPIC*/
+	/*	ERR_CHANOPRIVSNEEDED            ERR_NOCHANMODES*/
+
+}
+
+void Server::executeInviteCommand(Message& msg, User& usr)
+{
+	/*Numeric Replies:*/
+	/**/
+	/*	ERR_NEEDMOREPARAMS              ERR_NOSUCHNICK*/
+	/*	ERR_NOTONCHANNEL                ERR_USERONCHANNEL*/
+	/*	ERR_CHANOPRIVSNEEDED*/
+	/*	RPL_INVITING                    RPL_AWAY*/
+}
+
 void Server::executeKickCommand(Message& msg, User& usr)
 {
+	/*Numeric Replies:*/
+	/**/
+	/*	ERR_NEEDMOREPARAMS              ERR_NOSUCHCHANNEL*/
+	/*	ERR_BADCHANMASK                 ERR_CHANOPRIVSNEEDED*/
+	/*	ERR_USERNOTINCHANNEL            ERR_NOTONCHANNEL*/
+	/**/
+
 	std::vector<std::string> args = msg.getArgs();
 	std::string channel, user, reason;
 	channel = args[0];
@@ -470,8 +573,28 @@ void Server::executeKickCommand(Message& msg, User& usr)
 
 void Server::executeNoticeCommand(Message& msg, User& usr)
 {
+	//not sure do we implent this
 }
 
-void Server::executeTopicCommand(Message& msg, User& usr)
+void Server::executeWhoCommand(Message& msg, User& usr)
 {
+	//not sure do we implent this
+}
+
+void Server::executePingCommand(Message& msg, User& usr)
+{
+	if (msg.getArgs().empty())
+	{
+		Logger::log(Logger::WARNING, "PING command received with no parameters from user " + usr.getNick());
+		return;
+	}
+	std::string pongResponse = ":" + server_name_ + " PONG " + server_name_ + " :" + msg.getArgs()[0] + "\r\n";
+
+	usr.sendData(pongResponse);
+	Logger::log(Logger::DEBUG, "Sent PONG to user " + usr.getNick());
+}
+
+void Server::executePongCommand(Message& msg, User& usr)
+{
+	Logger::log(Logger::DEBUG, "Received PONG from user " + usr.getNick());
 }
