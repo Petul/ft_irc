@@ -119,10 +119,9 @@ void Server::startServer()
 	initServer();
 	while (1)
 	{
-		int eventCount = poll(poll_fds_.data(), poll_fds_.size(), -1);
-		if (eventCount == -1)
+		if (poll(poll_fds_.data(), poll_fds_.size(), -1) < 0)
 		{
-			throw std::runtime_error("Error: poll");
+			throw std::runtime_error("poll");
 		}
 
 		for (size_t i = 0; i < poll_fds_.size(); i++)
@@ -130,58 +129,65 @@ void Server::startServer()
 			if (poll_fds_[i].revents & POLLIN)
 			{
 				if (poll_fds_[i].fd == _serverSocket)
-				{  // new client trying to connect
-					struct sockaddr_in clientAddr;
-					socklen_t clientLen = sizeof(clientAddr);
-					int clientSocket = accept(
-						_serverSocket, (sockaddr*)&server_addr_, &clientLen);
-					if (clientSocket > 0)
-					{
-						Logger::log(Logger::INFO,
-									"New client connected: " +
-										std::to_string(clientSocket));
-						poll_fds_.push_back({clientSocket, POLLIN, 0});
-						this->users_[clientSocket] = User(clientSocket);
-					}
-				}
-				else
 				{
-					try
-					{
-						std::string buf;
-						User* user = &(users_[poll_fds_[i].fd]);
-						if (!user->receiveData())
-						{
-							std::string msg = "Client " +
-											  std::to_string(poll_fds_[i].fd) +
-											  " disconnected";
-							Logger::log(Logger::INFO, msg);
-
-							poll_fds_[i].fd =
-								-1;  // Ignore this in the future,
-									 // delete before next iteration?
-							continue;
-						}
-						while (user->getNextMessage(buf))
-						{
-							try
-							{
-								Message msg{buf};
-								msg.parseMessage();
-								executeCommand(msg, users_[poll_fds_[i].fd]);
-							}
-							catch (std::invalid_argument& e)
-							{
-								Logger::log(Logger::WARNING, e.what());
-							}
-						}
-					}
-					catch (std::invalid_argument& e)
-					{
-						Logger::log(Logger::WARNING, e.what());
-					}
+					acceptNewClient();
 				}
 			}
+			else
+			{
+				try
+				{
+					ReceiveDataFromClient(i);
+				}
+				catch (std::invalid_argument& e)
+				{
+					Logger::log(Logger::WARNING, e.what());
+				}
+			}
+		}
+	}
+}
+
+void Server::acceptNewClient()
+{
+	struct sockaddr_in clientAddr;
+	socklen_t clientLen = sizeof(clientAddr);
+	int clientSocket =
+		accept(_serverSocket, (sockaddr*)&server_addr_, &clientLen);
+	if (clientSocket > 0)
+	{
+		Logger::log(Logger::INFO,
+					"New client connected: " + std::to_string(clientSocket));
+		poll_fds_.push_back({clientSocket, POLLIN, 0});
+		this->users_[clientSocket] = User(clientSocket);
+	}
+}
+
+void Server::ReceiveDataFromClient(int i)
+{
+	std::string buf;
+	User* user = &(users_[poll_fds_[i].fd]);
+	if (!user->receiveData())
+	{
+		std::string msg =
+			"Client " + std::to_string(poll_fds_[i].fd) + " disconnected";
+		Logger::log(Logger::INFO, msg);
+
+		poll_fds_[i].fd = -1;  // Ignore this in the future,
+							   // delete before next iteration?
+		return;
+	}
+	while (user->getNextMessage(buf))
+	{
+		try
+		{
+			Message msg{buf};
+			msg.parseMessage();
+			executeCommand(msg, users_[poll_fds_[i].fd]);
+		}
+		catch (std::invalid_argument& e)
+		{
+			Logger::log(Logger::WARNING, e.what());
 		}
 	}
 }
@@ -197,8 +203,8 @@ std::map<int, User>& Server::getUsers()
 
 void Server::executeCommand(Message& msg, User& usr)
 {
-	// if (!usr.isRegistered() && msg.getType() > 4) // commented out just for
-	// testing
+	// if (!usr.isRegistered() && msg.getType() > 4) // commented out just
+	// for testing
 	// {
 	//	return;
 	// }
@@ -310,7 +316,8 @@ void Server::attemptRegistration(User& usr)
 	if (usr.getPassword() == server_pass_)
 	{
 		usr.registerUser();
-		// TODO: make usr.getMddes(), getChannelModes() usr.getHost() and date
+		// TODO: make usr.getMddes(), getChannelModes() usr.getHost() and
+		// date
 		usr.sendData(rplWelcome(server_name_, usr.getNick(), usr.getUsername(),
 								"usr.getHost()"));
 		usr.sendData(rplYourHost(server_name_, usr.getNick(), SERVER_VER));

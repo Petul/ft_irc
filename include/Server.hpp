@@ -18,6 +18,7 @@
 #define SERVER_VER "0.1"
 
 #include <netinet/in.h>
+#include <poll.h>
 
 #include <map>
 #include <string>
@@ -46,6 +47,8 @@ class Server
    private:
 	Server();
 	void initServer();
+	void acceptNewClient();
+	void ReceiveDataFromClient(int i);
 
 	typedef void (Server::*executeFunc)(Message&, User&);
 	static const std::map<COMMANDTYPE, executeFunc> execute_map_;
