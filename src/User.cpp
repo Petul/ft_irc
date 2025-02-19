@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   User.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
+/*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 13:32:51 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/18 23:37:10 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/19 10:56:45 by mpellegr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,16 +29,16 @@ User::User(int sockfd) : sockfd_{sockfd}
 {
 }
 
-// User::User(const User& o)
-//     : sockfd_{o.sockfd_},
-//       recv_buf_{o.recv_buf_},
-//       registered_{o.registered_},
-//       password_{o.password_},
-//       username_{o.username_},
-//       nick_{o.nick_}
-// {
-// }
-//
+User::User(const User& o)
+    : sockfd_{o.sockfd_},
+      recv_buf_{o.recv_buf_},
+      registered_{o.registered_},
+      password_{o.password_},
+      username_{o.username_},
+      nick_{o.nick_}
+{
+}
+
 User& User::operator=(const User& o)
 {
 	if (this == &o)
