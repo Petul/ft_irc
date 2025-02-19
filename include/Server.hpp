@@ -17,12 +17,14 @@
 #define PASS_MIN_LEN 4
 #define SERVER_VER "0.1"
 
+#include <netinet/in.h>
+
 #include <map>
 #include <string>
 
+#include "Channel.hpp"
 #include "Message.hpp"
 #include "User.hpp"
-#include "Channel.hpp"
 #include "replies.hpp"
 
 class Channel;
@@ -30,20 +32,39 @@ class Channel;
 class Server
 {
    public:
-	Server();
 	Server(std::string server_pass, int server_port, std::string server_name);
 	Server(const Server&);
 	Server& operator=(const Server&);
 
 	void startServer();
 	static void handleSignal(int signum);
-	std::map<std::string, Channel> &getChannels();
-	std::map<int, User> &getUsers();
-	void sendReply(User& usr, int numeric, const std::string& command, const std::string& message);
+	std::map<std::string, Channel>& getChannels();
+	std::map<int, User>& getUsers();
+	void sendReply(User& usr, int numeric, const std::string& command,
+				   const std::string& message);
 
    private:
+	Server();
+	void initServer();
+
 	typedef void (Server::*executeFunc)(Message&, User&);
 	static const std::map<COMMANDTYPE, executeFunc> execute_map_;
+
+	std::string server_name_;
+	std::string server_pass_;
+	int server_port_;
+
+	std::map<int, User> users_;
+	static Server* _server;
+	std::map<std::string, Channel> _channels;
+
+	int _serverSocket;
+	struct sockaddr_in server_addr_;
+	std::vector<struct pollfd> poll_fds_;
+
+	void parseMessage(std::string& msg, int clientFd, Server* _server);
+	COMMANDTYPE getMessageType(std::string& msg);
+
 	void executeCommand(Message& msg, User& usr);
 	void executePassCommand(Message& msg, User& usr);
 	bool isNickInUse(std::string& nick);
@@ -63,15 +84,4 @@ class Server
 	void executeTopicCommand(Message& msg, User& usr);
 	void executePingCommand(Message& msg, User& usr);
 	void executePongCommand(Message& msg, User& usr);
-	std::string server_name_;
-	std::string server_pass_;
-	int server_port_;
-	// std::map<std::string, Channel> channels_;
-	std::map<int, User> users_;
-	static Server *_server;
-	std::map<std::string, Channel> _channels;
-
-	int _serverSocket;
-	void parseMessage(std::string& msg, int clientFd, Server *_server);
-	COMMANDTYPE getMessageType(std::string& msg);
 };
