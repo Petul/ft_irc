@@ -6,7 +6,7 @@
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/17 08:06:20 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/18 03:06:13 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/19 00:10:39 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,7 +37,9 @@ const std::map<std::string, COMMANDTYPE> Message::command_map_ = {
 	{"MODE", MODE},
 	{"KICK", KICK},
 	{"NOTICE", NOTICE},
-	{"TOPIC", TOPIC}
+	{"TOPIC", TOPIC},
+	{"PING", PING},
+	{"PONG", PONG}
 };
 
 void Message::parseMessage()
