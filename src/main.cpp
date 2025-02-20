@@ -6,7 +6,7 @@
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 13:30:16 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/18 02:29:14 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/20 13:19:42 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,7 +50,7 @@ int main(int argc, char** argv)
 			throw std::invalid_argument{
 				"Password must contain at least 4 characters"};
 		}
-		Server server(password, port, "ircserv");
+		Server server(password, port);
 		server.startServer();
 	}
 	catch (std::exception& e)

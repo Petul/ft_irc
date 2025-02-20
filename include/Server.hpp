@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/13 16:26:34 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/19 00:27:16 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/20 13:21:17 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,7 @@
 
 #define PASS_MIN_LEN 4
 #define SERVER_VER "0.1"
+#define SERVER_NAME "ircserv"
 
 #include <netinet/in.h>
 #include <poll.h>
@@ -33,7 +34,7 @@ class Channel;
 class Server
 {
    public:
-	Server(std::string server_pass, int server_port, std::string server_name);
+	Server(std::string server_pass, int server_port);
 	Server(const Server&);
 	Server& operator=(const Server&);
 

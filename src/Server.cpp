@@ -6,7 +6,7 @@
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/20 09:52:07 by pleander         ###   ########.fr       */
+/*   Updated: 2025/02/20 13:32:05 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,17 +30,15 @@
 #include "replies.hpp"
 #include "sys/socket.h"
 
-Server::Server(std::string server_pass, int server_port,
-			   std::string server_name)
+Server::Server(std::string server_pass, int server_port)
 	: server_pass_{server_pass},
-	  server_port_{server_port},
-	  server_name_{server_name}
+	  server_port_{server_port}
 {
 	_server = this;
 }
 
 Server::Server(const Server& o)
-	: Server(o.server_pass_, o.server_port_, o.server_name_)
+	: Server(o.server_pass_, o.server_port_)
 {
 }
 
@@ -224,7 +222,7 @@ void Server::executePassCommand(Message& msg, User& usr)
 
 	if (msg.getArgs().size() != 1)
 	{
-		usr.sendData(errNeedMoreParams(server_name_, usr.getNick(), "PASS"));
+		usr.sendData(errNeedMoreParams(SERVER_NAME, usr.getNick(), "PASS"));
 		throw std::invalid_argument{"Invalid number of arguments"};
 	}
 	else if (usr.isRegistered())
@@ -258,14 +256,14 @@ void Server::executeNickCommand(Message& msg, User& usr)
 
 	if (msg.getArgs().size() != 1)
 	{
-		usr.sendData(errNoNicknameGiven(server_name_, ""));
+		usr.sendData(errNoNicknameGiven(SERVER_NAME, ""));
 		// return;
 		throw std::invalid_argument{"No nick name given"};
 	}
 	std::string newNick = msg.getArgs()[0];
 	if (isNickInUse(newNick))
 	{
-		usr.sendData(errNicknameInUse(server_name_, newNick));
+		usr.sendData(errNicknameInUse(SERVER_NAME, newNick));
 		// return;
 		throw std::invalid_argument{"Nick already in use"};
 	}
@@ -288,7 +286,7 @@ void Server::executeUserCommand(Message& msg, User& usr)
 	/*	✓  ERR_NEEDMOREPARAMS			 ✓	ERR_ALREADYREGISTRED*/
 	if (msg.getArgs().size() != 4)
 	{
-		usr.sendData(errNeedMoreParams(server_name_, usr.getNick(), "USER"));
+		usr.sendData(errNeedMoreParams(SERVER_NAME, usr.getNick(), "USER"));
 		throw std::invalid_argument{"Invalid number of arguments"};
 	}
 	usr.setUsername(msg.getArgs().front());
@@ -314,12 +312,12 @@ void Server::attemptRegistration(User& usr)
 		usr.registerUser();
 		// TODO: make usr.getMddes(), getChannelModes() usr.getHost() and
 		// date
-		usr.sendData(rplWelcome(server_name_, usr.getNick(), usr.getUsername(),
+		usr.sendData(rplWelcome(SERVER_NAME, usr.getNick(), usr.getUsername(),
 								"usr.getHost()"));
-		usr.sendData(rplYourHost(server_name_, usr.getNick(), SERVER_VER));
-		usr.sendData(rplCreated(server_name_, usr.getNick(),
+		usr.sendData(rplYourHost(SERVER_NAME, usr.getNick(), SERVER_VER));
+		usr.sendData(rplCreated(SERVER_NAME, usr.getNick(),
 								"today"));  // maybe we need date.
-		usr.sendData(rplMyInfo(server_name_, usr.getNick(), SERVER_VER,
+		usr.sendData(rplMyInfo(SERVER_NAME, usr.getNick(), SERVER_VER,
 							   "usr.getModes()", "getChannelModes()"));
 	}
 	else
@@ -672,7 +670,7 @@ void Server::executePingCommand(Message& msg, User& usr)
 						usr.getNick());
 		return;
 	}
-	std::string pongResponse = ":" + server_name_ + " PONG " + server_name_ +
+	std::string pongResponse = std::string(":") + SERVER_NAME + " PONG " + SERVER_NAME +
 							   " :" + msg.getArgs()[0] + "\r\n";
 
 	usr.sendData(pongResponse);
