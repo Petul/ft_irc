@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/20 21:55:42 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/21 01:19:55 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -502,8 +502,8 @@ void Server::part(Message& msg, User& usr)
 {
 	/*Numeric Replies:*/
 	/**/
-	/*	ERR_NEEDMOREPARAMS				ERR_NOSUCHCHANNEL*/
-	/*	ERR_NOTONCHANNEL*/
+	/*✓	ERR_NEEDMOREPARAMS			✓ ERR_NOSUCHCHANNEL*/
+	/*✓	ERR_NOTONCHANNEL*/
 	std::vector<std::string> args = msg.getArgs();
 	if (args.empty())
 	{
@@ -533,17 +533,31 @@ void Server::part(Message& msg, User& usr)
 			continue;
 		}
 		it->second.part(usr, partMessage);
+		if (it->second.getUserCount() == 0)
+		{
+			_channels.erase(it);
+		}
 	}
 }
 
 void Server::quit(Message& msg, User& usr)
 {
-	std::string quitMessage =
-		(msg.getArgs().empty() ? "Quit" : msg.getArgs()[0]);
-	// TODO: Handle leaving from channels and broadcasting the quit message
-	// there as
-	//	well. some loop to go trough user channels
-	usr.sendData(rplQuit(usr.getNick(), quitMessage));
+	std::string quitMessage = (msg.getArgs().empty() ? "Quit" : msg.getArgs()[0]);
+
+	std::string senderFullID = usr.getNick() + "!" + usr.getUsername() + "@" + usr.getHost();
+	std::string fullQuitMsg = ":" + senderFullID + " QUIT :" + quitMessage + "\r\n";
+
+	for (auto &chanPair : _channels)
+	{
+		Channel &chan = chanPair.second;
+		if (chan.isUserInChannel(usr))
+		{
+			chan.displayMessage(usr, fullQuitMsg);
+			chan.removeUser(usr);
+		}
+	}
+	usr.sendData(fullQuitMsg);
+
 	int fd = usr.getSocket();
 	// Works, but can we make it better?
 	for (auto it = poll_fds_.begin(); it != poll_fds_.end(); it++)
@@ -734,7 +748,7 @@ void Server::kick(Message& msg, User& usr)
 	std::vector<std::string> args = msg.getArgs();
 	try
 	{
-		_channels.at(args[0]).removeUser(usr, args[1], args.size() == 3 ? args[2] : "");
+		_channels.at(args[0]).kickUser(usr, args[1], args.size() == 3 ? args[2] : "");
 	}
 	catch (std::exception &e)
 	{

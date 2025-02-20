@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 13:32:51 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/20 22:41:01 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/21 00:06:36 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -133,7 +133,8 @@ int User::sendData(const std::string& buf)
 {
 	//::send(this->sockfd_, buf.c_str(), buf.length(), 0);
 	int n_bytes =
-	    write(this->sockfd_, const_cast<char*>(buf.data()), buf.size());
+	    write(this->sockfd_, buf.c_str(), buf.length());
+	    //write(this->sockfd_, const_cast<char*>(buf.data()), buf.size());
 	if (n_bytes < 0)
 	{
 		throw std::runtime_error{"Error: sendData"};

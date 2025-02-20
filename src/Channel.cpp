@@ -1,4 +1,5 @@
 #include "Channel.hpp"
+#include "Server.hpp"
 #include "replies.hpp"
 
 Channel::Channel(std::string name, User &usr) : _name(name), _isInviteOnly(false),
@@ -14,7 +15,7 @@ Channel::~Channel() {}
 std::string Channel::getName() const { return _name; }
 bool Channel::getInviteMode() const { return _isInviteOnly; }
 std::string Channel::getTopic() const { return _topic; }
-
+unsigned int Channel::getUserCount() const {return _users.size(); }
 void Channel::addUser(User &usr, std::string channelPassword) {
 	int userFd = usr.getSocket();
 	if (channelPassword != _password) {
@@ -78,18 +79,58 @@ void Channel::unsetRestrictionsOnTopic() { _restrictionsOnTopic = false; }
 void Channel::addOperator(User &user) { _operators.insert(&user); }
 void Channel::removeOperator(User &user) { _operators.erase(&user); }
 
-void Channel::removeUser(User &source, std::string targetUsername, std::string reason)
+void Channel::removeUser(User& user)
 {
+	_users.erase(&user);
+	// Do we remove users from these as well?
+	//_operators.erase(user);
+	//_invitedUsers.erase(user);
+}
+
+void Channel::kickUser(User &source, std::string targetUsername, std::string reason)
+{
+//	for (auto user : _users)
+//	{
+//		if (source.getSocket() != user->getSocket())
+//		{
+//			std::string fullMsg = rplKick(source.getNick(), _name, targetUsername, reason);
+//			write (user->getSocket(), fullMsg.c_str(), fullMsg.length());
+//		}
+//		if (user->getUsername() == targetUsername)
+//			_users.erase(user);
+//	}
+	if (!isUserInChannel(source))
+	{
+		source.sendData(errUserNotInChannel(SERVER_NAME, source.getNick(), _name));
+		return;
+	}
+	if (!isUserAnOperatorInChannel(source))
+	{
+		source.sendData(errChanPrivsNeeded(SERVER_NAME, source.getNick(), _name));
+		return;
+	}
+
+	User* targetUser = nullptr;
 	for (auto user : _users)
 	{
-		if (source.getSocket() != user->getSocket())
+		if (user->getNick() == targetUsername)
 		{
-			std::string fullMsg = rplKick(source.getNick(), _name, targetUsername, reason);
-			write (user->getSocket(), fullMsg.c_str(), fullMsg.length());
+			targetUser = user;
+			break;
 		}
-		if (user->getUsername() == targetUsername)
-			_users.erase(user);
 	}
+
+	if (!targetUser)
+	{
+		source.sendData(errUserNotInChannel(SERVER_NAME, source.getNick(), _name));
+		return;
+	}
+
+	std::string kickMsg = rplKick(source.getNick(), _name, targetUser->getNick(), reason);
+	displayMessage(*targetUser, kickMsg);
+	targetUser->sendData(kickMsg);
+	removeUser(*targetUser);
+	Logger::log(Logger::INFO, "User " + targetUser->getNick() + " was kicked from channel " + _name + " by " + source.getNick());
 }
 
 void Channel::inviteUser(User &invitingUsr, std::unordered_map<int, User> &users_, std::string invitedUsrNickname) {
@@ -116,21 +157,13 @@ bool Channel::checkIfUserInvited(User &user) {
 
 void Channel::part(User &usr, const std::string &partMessage)
 {
-	std::string senderFullID = usr.getNick() + "!" + usr.getUsername() + "@" + usr.getHost();
-	std::string fullMsg = ":" + senderFullID + " PART " + _name + " :" + partMessage + "\r\n";
+	std::string senderFullID = usr.getNick() + "!~" + usr.getUsername() + "@" + usr.getHost();
+	std::string partMsg = ":" + senderFullID + " PART " + _name + " :" + partMessage + "\r\n";
 	
 	for (auto user : _users)
 	{
-		user->sendData(fullMsg);
+		user->sendData(partMsg);
 	}
-	if (isUserAnOperatorInChannel(usr))
-	{
-		_operators.erase(&usr);
-	}
-	else
-	{
-		_users.erase(&usr);
-	}
-
+	removeUser(usr);
 	Logger::log(Logger::INFO, "User " + usr.getNick() + " parted channel " + _name);
 }
