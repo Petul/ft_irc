@@ -15,8 +15,9 @@ CXX := c++
 CXXFLAGS := -Wall -Wextra -g -std=c++14
 SOURCES := src/main.cpp src/Server.cpp src/User.cpp src/Logger.cpp src/Channel.cpp src/Message.cpp
 INCLUDES := include
-
 OBJECTS := $(SOURCES:.cpp=.o)
+
+LOG_LEVEL := DEBUG #DEBUG/INFO/WARNING/ERROR
 
 .PHONY: all
 all: $(NAME)
@@ -25,7 +26,7 @@ $(NAME): $(OBJECTS)
 		$(CXX) $(OBJECTS) -o $(NAME)
 
 %.o: %.cpp
-		$(CXX) $(CXXFLAGS) -I $(INCLUDES) -c $< -o $@
+		$(CXX) -DLOG_LEVEL=$(LOG_LEVEL) $(CXXFLAGS) -I $(INCLUDES) -c $< -o $@
 
 .PHONY: clean
 clean:
