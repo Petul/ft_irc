@@ -1,11 +1,12 @@
 #include "Channel.hpp"
+#include "replies.hpp"
 
-Channel::Channel(std::string name, int cretorFd) : _name(name), _isInviteOnly(false),
+Channel::Channel(std::string name, User &usr) : _name(name), _isInviteOnly(false),
 												   _restrictionsOnTopic(false), _topic(""),
 												   _password(""), _userLimit(MAX_USERS)
 {
-	_users.insert(cretorFd);
-	_operators.insert(cretorFd);
+	_users.insert(&usr);
+	_operators.insert(&usr);
 }
 
 Channel::~Channel() {}
@@ -21,8 +22,8 @@ void Channel::addUser(User &usr, std::string channelPassword) {
 		return ;
 	}
 	if (_users.size() + 1 < _userLimit) {
-		if (_users.find(userFd) == _users.end()) {
-			_users.insert(userFd);
+		if (_users.find(&usr) == _users.end()) {
+			_users.insert(&usr);
 			std::string msg = "User " + std::to_string(userFd) + " joined " + _name;
 			Logger::log(Logger::INFO, msg);
 		}
@@ -36,25 +37,25 @@ void Channel::addUser(User &usr, std::string channelPassword) {
 	}
 }
 
-bool Channel::isUserInChannel(int userFd) {
-	auto it = _users.find(userFd);
-	if (it != _users.end()) 
+bool Channel::isUserInChannel(User &usr) {
+	auto it = _users.find(&usr);
+	if (it != _users.end())
 		return true;
 	return false;
 }
 
-bool Channel::isUserAnOperatorInChannel(int userFd) {
-	auto it = _operators.find(userFd);
-	if (it != _operators.end()) 
+bool Channel::isUserAnOperatorInChannel(User &usr) {
+	auto it = _operators.find(&usr);
+	if (it != _operators.end())
 		return true;
 	return false;
 }
 
-void Channel::displayMessage(int senderFd, std::string msg) {
-	for (int userFd : _users) {
-		if (senderFd != userFd) {
-			std::string fullMsg = "[" + _name + "] User " + std::to_string(senderFd) + ": " + msg + "\n";
-			write (userFd, fullMsg.c_str(), fullMsg.length());
+void Channel::displayMessage(User &sender, std::string msg) {
+	for (auto user : _users) {
+		if (sender.getSocket() != user->getSocket()) {
+			std::string fullMsg = rplPrivMsg(sender.getNick(), _name, msg);
+			write (user->getSocket(), fullMsg.c_str(), fullMsg.length());
 		}
 	}
 }
@@ -71,6 +72,29 @@ void Channel::unsetPasword() { _password = ""; }
 void Channel::setRestrictionsOnTopic() { _restrictionsOnTopic = true; }
 void Channel::unsetRestrictionsOnTopic() { _restrictionsOnTopic = false; }
 
-void Channel::addOperator(int userFd) { _operators.insert(userFd); }
-void Channel::removeOperator(int userFd) { _operators.erase(userFd); }
-void Channel::removeUser(int userFd) { _users.erase(userFd); }
+void Channel::addOperator(User &user) { _operators.insert(&user); }
+void Channel::removeOperator(User &user) { _operators.erase(&user); }
+
+void Channel::removeUser(User &source, User &target, std::string reason)
+{
+	for (auto user : _users) {
+		if (source.getSocket() != user->getSocket()) {
+			std::string fullMsg = rplKick(source.getNick(), _name, target.getUsername(), reason);
+			write (user->getSocket(), fullMsg.c_str(), fullMsg.length());
+		}
+	}
+	_users.erase(&target);
+}
+
+void Channel::inviteUser(User &invitingUsr, User &invitedUsr) {
+	_invitedUsers.insert(&invitedUsr);
+	std::string fullMsg = "User " + std::to_string(invitingUsr.getSocket()) + " invited you to join channel " + _name + "\n";
+	write (invitedUsr.getSocket(), fullMsg.c_str(), fullMsg.length());
+}
+
+bool Channel::checkIfUserInvited(User &user) {
+	auto it = _invitedUsers.find(&user);
+	if (it == _invitedUsers.end())
+		return false;
+	return true;
+}
