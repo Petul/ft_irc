@@ -20,8 +20,8 @@
 #include <netinet/in.h>
 #include <poll.h>
 
-#include <map>
 #include <string>
+#include <unordered_map>
 
 #include "Channel.hpp"
 #include "Message.hpp"
@@ -56,9 +56,9 @@ class Server
 	int server_port_;
 	std::string server_name_;
 
-	std::map<int, User> users_;
+	std::unordered_map<int, User> users_;
 	static Server* _server;
-	std::map<std::string, Channel> _channels;
+	std::unordered_map<std::string, Channel> _channels;
 
 	int _serverSocket;
 	struct sockaddr_in server_addr_;
