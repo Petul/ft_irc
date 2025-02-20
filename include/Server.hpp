@@ -12,8 +12,6 @@
 
 #pragma once
 
-// class Channel;  // Temp
-
 #define PASS_MIN_LEN 4
 #define SERVER_VER "0.1"
 
@@ -27,8 +25,6 @@
 #include "Message.hpp"
 #include "User.hpp"
 #include "replies.hpp"
-
-class Channel;
 
 class Server
 {
