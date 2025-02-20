@@ -39,8 +39,6 @@ class Server
 
 	void startServer();
 	static void handleSignal(int signum);
-	std::map<std::string, Channel>& getChannels();
-	std::map<int, User>& getUsers();
 	void sendReply(User& usr, int numeric, const std::string& command,
 				   const std::string& message);
 
@@ -53,9 +51,9 @@ class Server
 	typedef void (Server::*executeFunc)(Message&, User&);
 	static const std::map<COMMANDTYPE, executeFunc> execute_map_;
 
-	std::string server_name_;
 	std::string server_pass_;
 	int server_port_;
+	std::string server_name_;
 
 	std::map<int, User> users_;
 	static Server* _server;

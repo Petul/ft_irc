@@ -19,6 +19,7 @@
 #include <unistd.h>
 
 #include <csignal>
+#include <cstring>
 #include <iostream>
 #include <stdexcept>
 #include <vector>
@@ -49,8 +50,8 @@ Server& Server::operator=(const Server& o)
 	{
 		return (*this);
 	}
-	this->server_port_ = o.server_port_;
 	this->server_pass_ = o.server_pass_;
+	this->server_port_ = o.server_port_;
 	return (*this);
 }
 
@@ -117,29 +118,29 @@ void Server::initServer()
 void Server::startServer()
 {
 	initServer();
-	while (1)
+	while (true)
 	{
 		if (poll(poll_fds_.data(), poll_fds_.size(), -1) < 0)
 		{
-			throw std::runtime_error("poll");
+			throw std::runtime_error(strerror(errno));
 		}
 
 		for (size_t i = 0; i < poll_fds_.size(); i++)
 		{
 			if (poll_fds_[i].revents & POLLIN)
 			{
-				if (poll_fds_[i].fd == _serverSocket)
-				{
-					acceptNewClient();
-				}
-			}
-			else
-			{
 				try
 				{
-					ReceiveDataFromClient(i);
+					if (poll_fds_[i].fd == _serverSocket)
+					{
+						acceptNewClient();
+					}
+					else
+					{
+						ReceiveDataFromClient(i);
+					}
 				}
-				catch (std::invalid_argument& e)
+				catch (std::exception& e)
 				{
 					Logger::log(Logger::WARNING, e.what());
 				}
@@ -160,6 +161,10 @@ void Server::acceptNewClient()
 					"New client connected: " + std::to_string(clientSocket));
 		poll_fds_.push_back({clientSocket, POLLIN, 0});
 		this->users_[clientSocket] = User(clientSocket);
+	}
+	else
+	{
+		throw std::runtime_error{strerror(errno)};
 	}
 }
 
@@ -191,15 +196,6 @@ void Server::ReceiveDataFromClient(int i)
 		}
 	}
 }
-
-std::map<std::string, Channel>& Server::getChannels()
-{
-	return _channels;
-}
-std::map<int, User>& Server::getUsers()
-{
-	return users_;
-};
 
 void Server::executeCommand(Message& msg, User& usr)
 {
