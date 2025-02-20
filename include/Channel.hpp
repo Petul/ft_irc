@@ -7,6 +7,7 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <unordered_map>
 
 #include "Logger.hpp"
 #include "User.hpp"
@@ -36,7 +37,7 @@ class Channel
 
 	void addUser(User &usr, std::string channelPassword);
 	// void inviteUser(User &invitingUsr, User &invitedUsr);
-	void inviteUser(User &invitingUsr, std::map<int, User> &users_, std::string invitedUsrNickname);
+	void inviteUser(User &invitingUsr, std::unordered_map<int, User> &users_, std::string invitedUsrNickname);
 	void displayMessage(User &sender, std::string msg);
 	bool isUserInChannel(User &usr);
 	bool isUserAnOperatorInChannel(User &usr);

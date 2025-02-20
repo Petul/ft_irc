@@ -92,7 +92,7 @@ void Channel::removeUser(User &source, std::string targetUsername, std::string r
 	}
 }
 
-void Channel::inviteUser(User &invitingUsr, std::map<int, User> &users_, std::string invitedUsrNickname) {
+void Channel::inviteUser(User &invitingUsr, std::unordered_map<int, User> &users_, std::string invitedUsrNickname) {
 	for (auto itU = users_.begin(); itU != users_.end(); itU++)
 	{
 		if (itU->second.getNick() == invitedUsrNickname)
