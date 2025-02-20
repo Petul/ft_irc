@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/20 17:19:02 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/20 19:22:48 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -356,31 +356,77 @@ void Server::privmsg(Message& msg, User& usr)
 {
 	/*Numeric Replies:*/
 	/**/
-	/*	ERR_NORECIPIENT					ERR_NOTEXTTOSEND*/
-	/*	ERR_CANNOTSENDTOCHAN			ERR_NOTOPLEVEL*/
-	/*	ERR_WILDTOPLEVEL				ERR_TOOMANYTARGETS*/
-	/*	ERR_NOSUCHNICK*/
-	/*	RPL_AWAY*/
+	/*✓	ERR_NORECIPIENT				✓ ERR_NOTEXTTOSEND*/
+	/*✓	ERR_CANNOTSENDTOCHAN		  ERR_NOTOPLEVEL*/
+	/*	ERR_WILDTOPLEVEL			  ERR_TOOMANYTARGETS*/
+	/*✓	ERR_NOSUCHNICK*/
+	/*✓	RPL_AWAY*/
 
-	// handleMessages(msg.getArgs(), usr.getSocket(), _server);
 	std::vector<std::string> args = msg.getArgs();
-	std::string channel, message;  // possible to have multiple messages?
-	int clientFd = usr.getSocket();
-	channel = args[0];
-	message = args[1];
-	if (!channel.empty() && !message.empty())
+	if (args[0].empty())
 	{
-		auto it = _channels.find(channel);
-		if (it != _channels.end() && it->second.isUserInChannel(usr))
+		usr.sendData(errNoRecipient(SERVER_NAME, usr.getNick(), "PRIVMSG"));
+		return;
+	}
+	if (args[0].empty())
+	{
+		usr.sendData(errNoTextToSend(SERVER_NAME, usr.getNick()));
+		return;
+	}
+
+	std::string targets = args[0];
+	std::string message = args[1];
+	std::istringstream targetStream(targets);
+	std::string target;
+	while (std::getline(targetStream, target, ','))
+	{
+		if (target.empty())
 		{
-			it->second.displayMessage(usr, message);
+			continue;
+		}
+
+		// If the target starts with ('#'), treat as channel.
+		if (target[0] == '#')
+		{
+			auto chanIt = _channels.find(target);
+			if (chanIt == _channels.end())
+			{
+				usr.sendData(errNoSuchChannel(SERVER_NAME, usr.getNick(), target));
+			}
+			else
+			{
+				if (!chanIt->second.isUserInChannel(usr))
+				{
+					usr.sendData(errCannotSendToChan(SERVER_NAME, usr.getNick(), target));
+				}
+				else
+				{
+					chanIt->second.displayMessage(usr, message);
+				}
+			}
 		}
 		else
 		{
-			std::string msg = "User " + std::to_string(clientFd) +
-							  " is not in channel " + channel +
-							  " or channel doesn't exist.\n";
-			Logger::log(Logger::ERROR, msg);
+			// Otherwise, treat as a private message to a user.
+			bool found = false;
+			for (auto& userPair : users_)
+			{
+				if (userPair.second.getNick() == target)
+				{
+					std::string fullMsg = rplPrivMsg(usr.getNick(), target, message);
+				//	if (userPair.second.isAway())
+				//	{
+				//		usr.sendData(rplAway(SERVER_NAME, usr.getNick(), target, userPair.second.getAwayMessage()))
+				//	}
+					userPair.second.sendData(fullMsg);
+					found = true;
+					break;
+				}
+			}
+			if (!found)
+			{
+				usr.sendData(errNoSuchNick(SERVER_NAME, usr.getNick(), target));
+			}
 		}
 	}
 }
