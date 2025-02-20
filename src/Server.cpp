@@ -18,6 +18,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <csignal>
 #include <cstring>
 #include <iostream>
@@ -60,7 +61,7 @@ Server* Server::_server = nullptr;
 void Server::handleSignal(int signum)
 {
 	static_cast<void>(signum);
-	std::cout << "\nServer shutting down...\n";
+	Logger::log(Logger::INFO, "Server shutting down. Goodbye..");
 	if (_server) close(_server->_serverSocket);
 	exit(0);
 }
@@ -134,10 +135,13 @@ void Server::startServer()
 					if (poll_fds_[i].fd == _serverSocket)
 					{
 						acceptNewClient();
+						Logger::log(Logger::DEBUG,
+									"Number of connected clients: " +
+										std::to_string(poll_fds_.size() - 1));
 					}
 					else
 					{
-						ReceiveDataFromClient(i);
+						receiveDataFromClient(i);
 					}
 				}
 				catch (std::exception& e)
@@ -146,6 +150,7 @@ void Server::startServer()
 				}
 			}
 		}
+		clearDisconnectedClients();
 	}
 }
 
@@ -168,7 +173,7 @@ void Server::acceptNewClient()
 	}
 }
 
-void Server::ReceiveDataFromClient(int i)
+void Server::receiveDataFromClient(int i)
 {
 	std::string buf;
 	User* user = &(users_[poll_fds_[i].fd]);
@@ -177,9 +182,8 @@ void Server::ReceiveDataFromClient(int i)
 		std::string msg =
 			"Client " + std::to_string(poll_fds_[i].fd) + " disconnected";
 		Logger::log(Logger::INFO, msg);
-
-		poll_fds_[i].fd = -1;  // Ignore this in the future,
-							   // delete before next iteration?
+		users_.erase(poll_fds_[i].fd);  // Erase user associated with client
+		poll_fds_[i].fd = -1;  // Mark pollfd as unused, to be deleted below
 		return;
 	}
 	while (user->getNextMessage(buf))
@@ -194,6 +198,19 @@ void Server::ReceiveDataFromClient(int i)
 		{
 			Logger::log(Logger::WARNING, e.what());
 		}
+	}
+}
+
+void Server::clearDisconnectedClients()
+{
+	auto pend =
+		std::remove_if(poll_fds_.begin(), poll_fds_.end(),
+					   [](struct pollfd& pollfd) { return pollfd.fd == -1; });
+	if (pend != poll_fds_.end())
+	{
+		poll_fds_.erase(pend, poll_fds_.end());
+		Logger::log(Logger::DEBUG, "Number of connected clients: " +
+									   std::to_string(poll_fds_.size() - 1));
 	}
 }
 
@@ -451,12 +468,21 @@ void Server::executeQuitCommand(Message& msg, User& usr)
 	// TODO: Handle leaving from channels and broadcasting the quit message
 	// there as
 	//	well. some loop to go trough user channels
-	//
-	//	need some proper way to disconnect gracefully and handle the pollfd.
 	usr.sendData(rplQuit(usr.getNick(), quitMessage));
 	int fd = usr.getSocket();
+	// Works, but can we make it better?
+	for (auto it = poll_fds_.begin(); it != poll_fds_.end(); it++)
+	{
+		if (it->fd == fd)
+		{
+			poll_fds_.erase(it);
+			break;
+		}
+	}
 	users_.erase(fd);
 	close(fd);
+	Logger::log(Logger::DEBUG, "Number of connected clients: " +
+								   std::to_string(poll_fds_.size() - 1));
 }
 
 // maybe all the logs could be moved inside each function

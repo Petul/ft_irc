@@ -46,7 +46,8 @@ class Server
 	Server();
 	void initServer();
 	void acceptNewClient();
-	void ReceiveDataFromClient(int i);
+	void receiveDataFromClient(int i);
+	void clearDisconnectedClients();
 
 	typedef void (Server::*executeFunc)(Message&, User&);
 	static const std::map<COMMANDTYPE, executeFunc> execute_map_;
