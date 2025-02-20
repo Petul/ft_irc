@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
+/*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/20 17:03:22 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/20 17:19:02 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -366,13 +366,8 @@ void Server::privmsg(Message& msg, User& usr)
 	std::vector<std::string> args = msg.getArgs();
 	std::string channel, message;  // possible to have multiple messages?
 	int clientFd = usr.getSocket();
-
 	channel = args[0];
-	for (size_t i = 1; i < args.size(); i++)
-	{
-		if (i > 1) message += " ";
-		message += args[i];
-	}
+	message = args[1];
 	if (!channel.empty() && !message.empty())
 	{
 		auto it = _channels.find(channel);
@@ -436,11 +431,17 @@ void Server::join(Message& msg, User& usr)
 		else
 		{
 			if (it->second.getInviteMode() == false)
+			{
 				it->second.addUser(usr, channelPassword);
+				it->second.displayMessage(usr, rplJoin(usr.getNick(), "random ip", channel));
+			}
 			else
 			{
 				if (it->second.checkIfUserInvited(usr))
+				{
 					it->second.addUser(usr, channelPassword);
+					it->second.displayMessage(usr, rplJoin(usr.getNick(), "random ip", channel));
+				}
 				else
 					Logger::log(Logger::WARNING,
 								"channel " + channelName +
@@ -517,6 +518,7 @@ void Server::mode(Message& msg, User& usr)
 							"user " + usr.getUsername() +
 								" set invite only mode ON in channel " +
 								channel);
+				it->second.displayMessage(usr, ":" + usr.getNick() + "!ourserver MODE " + channel + " " + mode);
 			}
 			if (mode == "-i")
 			{
@@ -634,14 +636,13 @@ void Server::invite(Message& msg, User& usr)
 	/*	ERR_CHANOPRIVSNEEDED*/
 	/*	RPL_INVITING                    RPL_AWAY*/
 	std::vector<std::string> args = msg.getArgs();
-	std::string user, channel;
-	user = args[0];
-	channel = args[1];
-	auto it = _channels.find(channel);
-	if (it != _channels.end() && it->second.isUserAnOperatorInChannel(usr))
+	try
 	{
-		auto itU = users_.find(std::stoi(user));
-		if (itU != users_.end()) it->second.inviteUser(usr, itU->second);
+		_channels.at(args[1]).inviteUser(usr, users_, args[0]);
+	}
+	catch (std::exception &e)
+	{
+		std::cerr << e.what() <<std::endl;
 	}
 }
 
@@ -655,25 +656,13 @@ void Server::kick(Message& msg, User& usr)
 	/**/
 
 	std::vector<std::string> args = msg.getArgs();
-	std::string channel, user, reason;
-	channel = args[0];
-	user = args[1];
-	reason = (args.size() == 3 ? args[2] : "");
-	auto it = _channels.find(channel);
-	if (it != _channels.end() && it->second.isUserAnOperatorInChannel(usr))
+	try
 	{
-		for (auto itU = users_.begin(); itU != users_.end(); itU++)
-		{
-			if (itU->second.getUsername() ==
-				user)  // not sure if username or nickname
-			{
-				it->second.removeUser(usr, itU->second, reason);
-				Logger::log(Logger::DEBUG, "User " + usr.getUsername() +
-											   " kicked out user " +
-											   itU->second.getUsername() +
-											   " from channel " + channel);
-			}
-		}
+		_channels.at(args[0]).removeUser(usr, args[1], args.size() == 3 ? args[2] : "");
+	}
+	catch (std::exception &e)
+	{
+		std::cerr << e.what() << std::endl;
 	}
 }
 
