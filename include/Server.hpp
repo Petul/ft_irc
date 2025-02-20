@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/13 16:26:34 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/20 16:59:22 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/20 18:03:43 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,7 +51,6 @@ class Server
 
 	std::string server_pass_;
 	int server_port_;
-	std::string server_name_;
 
 	std::unordered_map<int, User> users_;
 	static Server* _server;
