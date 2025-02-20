@@ -60,7 +60,10 @@ void Channel::displayMessage(User &sender, std::string msg) {
 	}
 }
 
-void Channel::setInviteOnly() { _isInviteOnly = true; }
+void Channel::setInviteOnly()
+{
+	_isInviteOnly = true;
+}
 void Channel::unsetInviteOnly() { _isInviteOnly = false; }
 void Channel::setUserLimit(int limit) {
 	if (limit < MAX_USERS)
@@ -75,21 +78,33 @@ void Channel::unsetRestrictionsOnTopic() { _restrictionsOnTopic = false; }
 void Channel::addOperator(User &user) { _operators.insert(&user); }
 void Channel::removeOperator(User &user) { _operators.erase(&user); }
 
-void Channel::removeUser(User &source, User &target, std::string reason)
+void Channel::removeUser(User &source, std::string targetUsername, std::string reason)
 {
-	for (auto user : _users) {
-		if (source.getSocket() != user->getSocket()) {
-			std::string fullMsg = rplKick(source.getNick(), _name, target.getUsername(), reason);
+	for (auto user : _users)
+	{
+		if (source.getSocket() != user->getSocket())
+		{
+			std::string fullMsg = rplKick(source.getNick(), _name, targetUsername, reason);
 			write (user->getSocket(), fullMsg.c_str(), fullMsg.length());
 		}
+		if (user->getUsername() == targetUsername)
+			_users.erase(user);
 	}
-	_users.erase(&target);
 }
 
-void Channel::inviteUser(User &invitingUsr, User &invitedUsr) {
-	_invitedUsers.insert(&invitedUsr);
-	std::string fullMsg = "User " + std::to_string(invitingUsr.getSocket()) + " invited you to join channel " + _name + "\n";
-	write (invitedUsr.getSocket(), fullMsg.c_str(), fullMsg.length());
+void Channel::inviteUser(User &invitingUsr, std::unordered_map<int, User> &users_, std::string invitedUsrNickname) {
+	for (auto itU = users_.begin(); itU != users_.end(); itU++)
+	{
+		if (itU->second.getNick() == invitedUsrNickname)
+		{
+			if (this->isUserAnOperatorInChannel(invitingUsr))
+			{
+				_invitedUsers.insert(&itU->second);
+				std::string fullMsg = rplInviting("ourserver", invitingUsr.getNick(), itU->second.getNick(), _name);
+				write (itU->second.getSocket(), fullMsg.c_str(), fullMsg.length());
+			}
+		}
+	}
 }
 
 bool Channel::checkIfUserInvited(User &user) {

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Message.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
+/*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/17 08:06:20 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/19 00:10:39 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/20 10:43:07 by mpellegr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,11 +56,14 @@ void Message::parseMessage()
 		msg_ss_ >> arg;
 		if (arg[0] == ':')
 		{
-			while (!msg_ss_.eof())
-			{
-				arg.push_back(' ');
-				msg_ss_ >> arg;
-			}
+			// while (!msg_ss_.eof())
+			// {
+			// 	arg.push_back(' ');
+			// 	msg_ss_ >> arg;
+			// }
+			std::string remaining;
+			std::getline(msg_ss_, remaining);
+			arg = arg.substr(1) + remaining;
 		}
 		if (arg[0])
 		{
