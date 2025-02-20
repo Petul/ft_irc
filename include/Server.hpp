@@ -12,23 +12,19 @@
 
 #pragma once
 
-// class Channel;  // Temp
-
 #define PASS_MIN_LEN 4
 #define SERVER_VER "0.1"
 
 #include <netinet/in.h>
 #include <poll.h>
 
-#include <map>
 #include <string>
+#include <unordered_map>
 
 #include "Channel.hpp"
 #include "Message.hpp"
 #include "User.hpp"
 #include "replies.hpp"
-
-class Channel;
 
 class Server
 {
@@ -39,25 +35,26 @@ class Server
 
 	void startServer();
 	static void handleSignal(int signum);
-	std::map<std::string, Channel>& getChannels();
-	std::map<int, User>& getUsers();
 	void sendReply(User& usr, int numeric, const std::string& command,
 				   const std::string& message);
 
    private:
 	Server();
 	void initServer();
+	void acceptNewClient();
+	void receiveDataFromClient(int i);
+	void clearDisconnectedClients();
 
 	typedef void (Server::*executeFunc)(Message&, User&);
 	static const std::map<COMMANDTYPE, executeFunc> execute_map_;
 
-	std::string server_name_;
 	std::string server_pass_;
 	int server_port_;
+	std::string server_name_;
 
-	std::map<int, User> users_;
+	std::unordered_map<int, User> users_;
 	static Server* _server;
-	std::map<std::string, Channel> _channels;
+	std::unordered_map<std::string, Channel> _channels;
 
 	int _serverSocket;
 	struct sockaddr_in server_addr_;

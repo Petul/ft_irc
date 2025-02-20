@@ -18,7 +18,9 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <csignal>
+#include <cstring>
 #include <iostream>
 #include <stdexcept>
 #include <vector>
@@ -49,8 +51,8 @@ Server& Server::operator=(const Server& o)
 	{
 		return (*this);
 	}
-	this->server_port_ = o.server_port_;
 	this->server_pass_ = o.server_pass_;
+	this->server_port_ = o.server_port_;
 	return (*this);
 }
 
@@ -59,7 +61,7 @@ Server* Server::_server = nullptr;
 void Server::handleSignal(int signum)
 {
 	static_cast<void>(signum);
-	std::cout << "\nServer shutting down...\n";
+	Logger::log(Logger::INFO, "Server shutting down. Goodbye..");
 	if (_server) close(_server->_serverSocket);
 	exit(0);
 }
@@ -117,88 +119,105 @@ void Server::initServer()
 void Server::startServer()
 {
 	initServer();
-	while (1)
+	while (true)
 	{
-		int eventCount = poll(poll_fds_.data(), poll_fds_.size(), -1);
-		if (eventCount == -1)
+		if (poll(poll_fds_.data(), poll_fds_.size(), -1) < 0)
 		{
-			throw std::runtime_error("Error: poll");
+			throw std::runtime_error(strerror(errno));
 		}
 
 		for (size_t i = 0; i < poll_fds_.size(); i++)
 		{
 			if (poll_fds_[i].revents & POLLIN)
 			{
-				if (poll_fds_[i].fd == _serverSocket)
-				{  // new client trying to connect
-					struct sockaddr_in clientAddr;
-					socklen_t clientLen = sizeof(clientAddr);
-					int clientSocket = accept(
-						_serverSocket, (sockaddr*)&server_addr_, &clientLen);
-					if (clientSocket > 0)
+				try
+				{
+					if (poll_fds_[i].fd == _serverSocket)
 					{
-						Logger::log(Logger::INFO,
-									"New client connected: " +
-										std::to_string(clientSocket));
-						poll_fds_.push_back({clientSocket, POLLIN, 0});
-						this->users_[clientSocket] = User(clientSocket);
+						acceptNewClient();
+						Logger::log(Logger::DEBUG,
+									"Number of connected clients: " +
+										std::to_string(poll_fds_.size() - 1));
+					}
+					else
+					{
+						receiveDataFromClient(i);
 					}
 				}
-				else
+				catch (std::exception& e)
 				{
-					try
-					{
-						std::string buf;
-						User* user = &(users_[poll_fds_[i].fd]);
-						if (!user->receiveData())
-						{
-							std::string msg = "Client " +
-											  std::to_string(poll_fds_[i].fd) +
-											  " disconnected";
-							Logger::log(Logger::INFO, msg);
-
-							poll_fds_[i].fd =
-								-1;  // Ignore this in the future,
-									 // delete before next iteration?
-							continue;
-						}
-						while (user->getNextMessage(buf))
-						{
-							try
-							{
-								Message msg{buf};
-								msg.parseMessage();
-								executeCommand(msg, users_[poll_fds_[i].fd]);
-							}
-							catch (std::invalid_argument& e)
-							{
-								Logger::log(Logger::WARNING, e.what());
-							}
-						}
-					}
-					catch (std::invalid_argument& e)
-					{
-						Logger::log(Logger::WARNING, e.what());
-					}
+					Logger::log(Logger::WARNING, e.what());
 				}
 			}
+		}
+		clearDisconnectedClients();
+	}
+}
+
+void Server::acceptNewClient()
+{
+	struct sockaddr_in clientAddr;
+	socklen_t clientLen = sizeof(clientAddr);
+	int clientSocket =
+		accept(_serverSocket, (sockaddr*)&server_addr_, &clientLen);
+	if (clientSocket > 0)
+	{
+		Logger::log(Logger::INFO,
+					"New client connected: " + std::to_string(clientSocket));
+		poll_fds_.push_back({clientSocket, POLLIN, 0});
+		this->users_[clientSocket] = User(clientSocket);
+	}
+	else
+	{
+		throw std::runtime_error{strerror(errno)};
+	}
+}
+
+void Server::receiveDataFromClient(int i)
+{
+	std::string buf;
+	User* user = &(users_[poll_fds_[i].fd]);
+	if (!user->receiveData())
+	{
+		std::string msg =
+			"Client " + std::to_string(poll_fds_[i].fd) + " disconnected";
+		Logger::log(Logger::INFO, msg);
+		users_.erase(poll_fds_[i].fd);  // Erase user associated with client
+		poll_fds_[i].fd = -1;  // Mark pollfd as unused, to be deleted below
+		return;
+	}
+	while (user->getNextMessage(buf))
+	{
+		try
+		{
+			Message msg{buf};
+			msg.parseMessage();
+			executeCommand(msg, users_[poll_fds_[i].fd]);
+		}
+		catch (std::invalid_argument& e)
+		{
+			Logger::log(Logger::WARNING, e.what());
 		}
 	}
 }
 
-std::map<std::string, Channel>& Server::getChannels()
+void Server::clearDisconnectedClients()
 {
-	return _channels;
+	auto pend =
+		std::remove_if(poll_fds_.begin(), poll_fds_.end(),
+					   [](struct pollfd& pollfd) { return pollfd.fd == -1; });
+	if (pend != poll_fds_.end())
+	{
+		poll_fds_.erase(pend, poll_fds_.end());
+		Logger::log(Logger::DEBUG, "Number of connected clients: " +
+									   std::to_string(poll_fds_.size() - 1));
+	}
 }
-std::map<int, User>& Server::getUsers()
-{
-	return users_;
-};
 
 void Server::executeCommand(Message& msg, User& usr)
 {
-	// if (!usr.isRegistered() && msg.getType() > 4) // commented out just for
-	// testing
+	// if (!usr.isRegistered() && msg.getType() > 4) // commented out just
+	// for testing
 	// {
 	//	return;
 	// }
@@ -310,7 +329,8 @@ void Server::attemptRegistration(User& usr)
 	if (usr.getPassword() == server_pass_)
 	{
 		usr.registerUser();
-		// TODO: make usr.getMddes(), getChannelModes() usr.getHost() and date
+		// TODO: make usr.getMddes(), getChannelModes() usr.getHost() and
+		// date
 		usr.sendData(rplWelcome(server_name_, usr.getNick(), usr.getUsername(),
 								"usr.getHost()"));
 		usr.sendData(rplYourHost(server_name_, usr.getNick(), SERVER_VER));
@@ -449,12 +469,21 @@ void Server::executeQuitCommand(Message& msg, User& usr)
 	// TODO: Handle leaving from channels and broadcasting the quit message
 	// there as
 	//	well. some loop to go trough user channels
-	//
-	//	need some proper way to disconnect gracefully and handle the pollfd.
 	usr.sendData(rplQuit(usr.getNick(), quitMessage));
 	int fd = usr.getSocket();
+	// Works, but can we make it better?
+	for (auto it = poll_fds_.begin(); it != poll_fds_.end(); it++)
+	{
+		if (it->fd == fd)
+		{
+			poll_fds_.erase(it);
+			break;
+		}
+	}
 	users_.erase(fd);
 	close(fd);
+	Logger::log(Logger::DEBUG, "Number of connected clients: " +
+								   std::to_string(poll_fds_.size() - 1));
 }
 
 // maybe all the logs could be moved inside each function

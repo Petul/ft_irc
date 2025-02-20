@@ -20,10 +20,10 @@ class Logger
    public:
 	enum LEVEL
 	{
-		DEBUG,
-		INFO,
-		WARNING,
-		ERROR
+		DEBUG = 0,
+		INFO = 1,
+		WARNING = 2,
+		ERROR = 3
 	};
 	static void log(enum LEVEL lvl, std::string msg);
 	static const std::chrono::system_clock::time_point start_time_;

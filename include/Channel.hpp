@@ -1,31 +1,32 @@
 #pragma once
 
-#include <string>
-#include <sstream>
+#include <unistd.h>
+
+#include <iostream>
 #include <istream>
 #include <set>
-#include <unistd.h>
-#include <iostream>
+#include <sstream>
+#include <string>
 
-#include "User.hpp"
 #include "Logger.hpp"
-#include "Server.hpp"
+#include "User.hpp"
 
-#define MAX_USERS 100 // to check
+#define MAX_USERS 100  // to check
 
 class Channel
 {
-private:
+   private:
 	std::string _name;
-	std::set<User*> _users;
-	std::set<User*> _operators;
-	std::set<User*> _invitedUsers;
+	std::set<User *> _users;
+	std::set<User *> _operators;
+	std::set<User *> _invitedUsers;
 	bool _isInviteOnly;
 	bool _restrictionsOnTopic;
 	std::string _topic;
 	std::string _password;
 	size_t _userLimit;
-public:
+
+   public:
 	Channel(std::string name, User &usr);
 	~Channel();
 
@@ -40,7 +41,7 @@ public:
 	bool isUserInChannel(User &usr);
 	bool isUserAnOperatorInChannel(User &usr);
 	bool checkIfUserInvited(User &user);
-	
+
 	void setInviteOnly();
 	void unsetInviteOnly();
 	void setUserLimit(int limit);
