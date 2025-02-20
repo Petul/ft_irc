@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
+/*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/20 09:52:07 by pleander         ###   ########.fr       */
+/*   Updated: 2025/02/20 10:46:10 by mpellegr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -348,13 +348,8 @@ void Server::executePrivmsgCommand(Message& msg, User& usr)
 	std::vector<std::string> args = msg.getArgs();
 	std::string channel, message;  // possible to have multiple messages?
 	int clientFd = usr.getSocket();
-
 	channel = args[0];
-	for (size_t i = 1; i < args.size(); i++)
-	{
-		if (i > 1) message += " ";
-		message += args[i];
-	}
+	message = args[1];
 	if (!channel.empty() && !message.empty())
 	{
 		auto it = _channels.find(channel);
