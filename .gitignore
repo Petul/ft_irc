@@ -2,3 +2,5 @@
 *.swp
 ircserv
 .vscode
+.cache
+compile_commands.json
