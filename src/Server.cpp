@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/20 19:22:48 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/20 21:55:42 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -287,7 +287,7 @@ void Server::nick(Message& msg, User& usr)
 	if (!usr.getNick().empty())
 	{
 		usr.sendData(rplNickChange(usr.getNick(), usr.getUsername(),
-								   "TODO:MAKEGETHOST", newNick));
+								   usr.getHost(), newNick));
 	}
 	usr.setNick(msg.getArgs()[0]);
 	if (!usr.isRegistered())
@@ -327,10 +327,10 @@ void Server::attemptRegistration(User& usr)
 	if (usr.getPassword() == server_pass_)
 	{
 		usr.registerUser();
-		// TODO: make usr.getMddes(), getChannelModes() usr.getHost() and
+		// TODO: make usr.getMddes(), getChannelModes() and
 		// date
 		usr.sendData(rplWelcome(SERVER_NAME, usr.getNick(), usr.getUsername(),
-								"usr.getHost()"));
+								usr.getHost()));
 		usr.sendData(rplYourHost(SERVER_NAME, usr.getNick(), SERVER_VER));
 		usr.sendData(rplCreated(SERVER_NAME, usr.getNick(),
 								"today"));  // maybe we need date.
@@ -479,14 +479,14 @@ void Server::join(Message& msg, User& usr)
 			if (it->second.getInviteMode() == false)
 			{
 				it->second.addUser(usr, channelPassword);
-				it->second.displayMessage(usr, rplJoin(usr.getNick(), "random ip", channel));
+				it->second.displayMessage(usr, rplJoin(usr.getNick(), usr.getHost(), channel));
 			}
 			else
 			{
 				if (it->second.checkIfUserInvited(usr))
 				{
 					it->second.addUser(usr, channelPassword);
-					it->second.displayMessage(usr, rplJoin(usr.getNick(), "random ip", channel));
+					it->second.displayMessage(usr, rplJoin(usr.getNick(), usr.getHost(), channel));
 				}
 				else
 					Logger::log(Logger::WARNING,
@@ -504,6 +504,36 @@ void Server::part(Message& msg, User& usr)
 	/**/
 	/*	ERR_NEEDMOREPARAMS				ERR_NOSUCHCHANNEL*/
 	/*	ERR_NOTONCHANNEL*/
+	std::vector<std::string> args = msg.getArgs();
+	if (args.empty())
+	{
+		usr.sendData(errNeedMoreParams(SERVER_NAME, usr.getNick(), "PART"));
+		return;
+	}
+
+	std::string channelsList = args[0];
+	std::string partMessage = (args.size() > 1 ? args[1] : usr.getNick());
+
+	std::istringstream iss(channelsList);
+	std::string channelName;
+	while (std::getline(iss, channelName, ','))
+	{
+		if (channelName.empty())
+			continue;
+
+		auto it = _channels.find(channelName);
+		if (it == _channels.end())
+		{
+			usr.sendData(errNoSuchChannel(SERVER_NAME, usr.getNick(), channelName));
+			continue;
+		}
+		if (!it->second.isUserInChannel(usr))
+		{
+			usr.sendData(errNotOnChannel(SERVER_NAME, usr.getNick(), channelName));
+			continue;
+		}
+		it->second.part(usr, partMessage);
+	}
 }
 
 void Server::quit(Message& msg, User& usr)

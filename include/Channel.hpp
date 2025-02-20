@@ -55,6 +55,7 @@ class Channel
 	void addOperator(User &user);
 	void removeOperator(User &user);
 	void removeUser(User &user, std::string targetUsername, std::string reason);
+	void part(User &usr, const std::string &partMessage);
 };
 
 // void joinChannel(std::string msg, int clientFd, Server *_server);

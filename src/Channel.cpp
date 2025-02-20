@@ -113,3 +113,24 @@ bool Channel::checkIfUserInvited(User &user) {
 		return false;
 	return true;
 }
+
+void Channel::part(User &usr, const std::string &partMessage)
+{
+	std::string senderFullID = usr.getNick() + "!" + usr.getUsername() + "@" + usr.getHost();
+	std::string fullMsg = ":" + senderFullID + " PART " + _name + " :" + partMessage + "\r\n";
+	
+	for (auto user : _users)
+	{
+		user->sendData(fullMsg);
+	}
+	if (isUserAnOperatorInChannel(usr))
+	{
+		_operators.erase(&usr);
+	}
+	else
+	{
+		_users.erase(&usr);
+	}
+
+	Logger::log(Logger::INFO, "User " + usr.getNick() + " parted channel " + _name);
+}
