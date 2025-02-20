@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/13 16:26:34 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/20 13:21:17 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/20 16:59:22 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -65,22 +65,22 @@ class Server
 	COMMANDTYPE getMessageType(std::string& msg);
 
 	void executeCommand(Message& msg, User& usr);
-	void executePassCommand(Message& msg, User& usr);
+	void pass(Message& msg, User& usr);
 	bool isNickInUse(std::string& nick);
-	void executeNickCommand(Message& msg, User& usr);
-	void executeUserCommand(Message& msg, User& usr);
+	void nick(Message& msg, User& usr);
+	void user(Message& msg, User& usr);
 	void attemptRegistration(User& usr);
-	void executeOperCommand(Message& msg, User& usr);
-	void executePrivmsgCommand(Message& msg, User& usr);
-	void executeJoinCommand(Message& msg, User& usr);
-	void executePartCommand(Message& msg, User& usr);
-	void executeInviteCommand(Message& msg, User& usr);
-	void executeWhoCommand(Message& msg, User& usr);
-	void executeQuitCommand(Message& msg, User& usr);
-	void executeModeCommand(Message& msg, User& usr);
-	void executeKickCommand(Message& msg, User& usr);
-	void executeNoticeCommand(Message& msg, User& usr);
-	void executeTopicCommand(Message& msg, User& usr);
-	void executePingCommand(Message& msg, User& usr);
-	void executePongCommand(Message& msg, User& usr);
+	void oper(Message& msg, User& usr);
+	void privmsg(Message& msg, User& usr);
+	void join(Message& msg, User& usr);
+	void part(Message& msg, User& usr);
+	void invite(Message& msg, User& usr);
+	void who(Message& msg, User& usr);
+	void quit(Message& msg, User& usr);
+	void mode(Message& msg, User& usr);
+	void kick(Message& msg, User& usr);
+	void notice(Message& msg, User& usr);
+	void topic(Message& msg, User& usr);
+	void ping(Message& msg, User& usr);
+	void pong(Message& msg, User& usr);
 };

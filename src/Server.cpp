@@ -6,7 +6,7 @@
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/20 13:32:05 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/20 17:03:22 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,22 +64,22 @@ void Server::handleSignal(int signum)
 	exit(0);
 }
 const std::map<COMMANDTYPE, Server::executeFunc> Server::execute_map_ = {
-	{PASS, &Server::executePassCommand},
-	{NICK, &Server::executeNickCommand},
-	{USER, &Server::executeUserCommand},
-	{OPER, &Server::executeOperCommand},
-	{PRIVMSG, &Server::executePrivmsgCommand},
-	{JOIN, &Server::executeJoinCommand},
-	{PART, &Server::executePartCommand},
-	{INVITE, &Server::executeInviteCommand},
-	{WHO, &Server::executeWhoCommand},
-	{QUIT, &Server::executeQuitCommand},
-	{MODE, &Server::executeModeCommand},
-	{KICK, &Server::executeKickCommand},
-	{NOTICE, &Server::executeNoticeCommand},
-	{TOPIC, &Server::executeTopicCommand},
-	{PING, &Server::executePingCommand},
-	{PONG, &Server::executePongCommand}
+	{PASS, &Server::pass},
+	{NICK, &Server::nick},
+	{USER, &Server::user},
+	{OPER, &Server::oper},
+	{PRIVMSG, &Server::privmsg},
+	{JOIN, &Server::join},
+	{PART, &Server::part},
+	{INVITE, &Server::invite},
+	{WHO, &Server::who},
+	{QUIT, &Server::quit},
+	{MODE, &Server::mode},
+	{KICK, &Server::kick},
+	{NOTICE, &Server::notice},
+	{TOPIC, &Server::topic},
+	{PING, &Server::ping},
+	{PONG, &Server::pong}
 	// Extend this list when we have more functions
 };
 
@@ -231,7 +231,7 @@ void Server::executeCommand(Message& msg, User& usr)
 	}
 }
 
-void Server::executePassCommand(Message& msg, User& usr)
+void Server::pass(Message& msg, User& usr)
 {
 	/*Numeric Replies:*/
 	/**/
@@ -262,7 +262,7 @@ bool Server::isNickInUse(std::string& nick)
 	return false;
 }
 
-void Server::executeNickCommand(Message& msg, User& usr)
+void Server::nick(Message& msg, User& usr)
 {
 	// We need to handle these possible errors.
 	/*Numeric Replies:*/
@@ -296,7 +296,7 @@ void Server::executeNickCommand(Message& msg, User& usr)
 	}
 }
 
-void Server::executeUserCommand(Message& msg, User& usr)
+void Server::user(Message& msg, User& usr)
 {
 	/*Numeric Replies:*/
 	/**/
@@ -344,7 +344,7 @@ void Server::attemptRegistration(User& usr)
 }
 
 // Maybe this bloat will get moved to individual .cpp files
-void Server::executeOperCommand(Message& msg, User& usr)
+void Server::oper(Message& msg, User& usr)
 {
 	/*Numeric Replies:*/
 	/**/
@@ -352,7 +352,7 @@ void Server::executeOperCommand(Message& msg, User& usr)
 	/*	ERR_NOOPERHOST					ERR_PASSWDMISMATCH*/
 }
 
-void Server::executePrivmsgCommand(Message& msg, User& usr)
+void Server::privmsg(Message& msg, User& usr)
 {
 	/*Numeric Replies:*/
 	/**/
@@ -390,7 +390,7 @@ void Server::executePrivmsgCommand(Message& msg, User& usr)
 	}
 }
 
-void Server::executeJoinCommand(Message& msg, User& usr)
+void Server::join(Message& msg, User& usr)
 {
 	/*Numeric Replies:*/
 	/**/
@@ -451,7 +451,7 @@ void Server::executeJoinCommand(Message& msg, User& usr)
 	}
 }
 
-void Server::executePartCommand(Message& msg, User& usr)
+void Server::part(Message& msg, User& usr)
 {
 	/*Numeric Replies:*/
 	/**/
@@ -459,7 +459,7 @@ void Server::executePartCommand(Message& msg, User& usr)
 	/*	ERR_NOTONCHANNEL*/
 }
 
-void Server::executeQuitCommand(Message& msg, User& usr)
+void Server::quit(Message& msg, User& usr)
 {
 	std::string quitMessage =
 		(msg.getArgs().empty() ? "Quit" : msg.getArgs()[0]);
@@ -484,7 +484,7 @@ void Server::executeQuitCommand(Message& msg, User& usr)
 }
 
 // maybe all the logs could be moved inside each function
-void Server::executeModeCommand(Message& msg, User& usr)
+void Server::mode(Message& msg, User& usr)
 {
 	/*Numeric Replies:*/
 	/**/
@@ -616,7 +616,7 @@ void Server::executeModeCommand(Message& msg, User& usr)
 	}
 }
 
-void Server::executeTopicCommand(Message& msg, User& usr)
+void Server::topic(Message& msg, User& usr)
 {
 	/*Numeric Replies:*/
 	/**/
@@ -625,7 +625,7 @@ void Server::executeTopicCommand(Message& msg, User& usr)
 	/*	ERR_CHANOPRIVSNEEDED			ERR_NOCHANMODES*/
 }
 
-void Server::executeInviteCommand(Message& msg, User& usr)
+void Server::invite(Message& msg, User& usr)
 {
 	/*Numeric Replies:*/
 	/**/
@@ -645,7 +645,7 @@ void Server::executeInviteCommand(Message& msg, User& usr)
 	}
 }
 
-void Server::executeKickCommand(Message& msg, User& usr)
+void Server::kick(Message& msg, User& usr)
 {
 	/*Numeric Replies:*/
 	/**/
@@ -677,17 +677,17 @@ void Server::executeKickCommand(Message& msg, User& usr)
 	}
 }
 
-void Server::executeNoticeCommand(Message& msg, User& usr)
+void Server::notice(Message& msg, User& usr)
 {
 	// not sure do we implent this
 }
 
-void Server::executeWhoCommand(Message& msg, User& usr)
+void Server::who(Message& msg, User& usr)
 {
 	// not sure do we implent this
 }
 
-void Server::executePingCommand(Message& msg, User& usr)
+void Server::ping(Message& msg, User& usr)
 {
 	if (msg.getArgs().empty())
 	{
@@ -703,7 +703,7 @@ void Server::executePingCommand(Message& msg, User& usr)
 	Logger::log(Logger::DEBUG, "Sent PONG to user " + usr.getNick());
 }
 
-void Server::executePongCommand(Message& msg, User& usr)
+void Server::pong(Message& msg, User& usr)
 {
 	Logger::log(Logger::DEBUG, "Received PONG from user " + usr.getNick());
 }
