@@ -18,6 +18,7 @@
 #define SERVER_VER "0.1"
 
 #include <netinet/in.h>
+#include <poll.h>
 
 #include <map>
 #include <string>

@@ -1,25 +1,13 @@
 /* ************************************************************************** */
-<<<<<<< HEAD
 /*                                                                            */
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
+/*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/02/14 08:39:33 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/19 16:22:00 by mpellegr         ###   ########.fr       */
+/*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
+/*   Updated: 2025/02/20 09:52:07 by pleander         ###   ########.fr       */
 /*                                                                            */
-=======
-/*																			  */
-/*														  :::	   ::::::::   */
-/*	 Server.cpp											:+:		 :+:	:+:   */
-/*													  +:+ +:+		  +:+	  */
-/*	 By: mpellegr <mpellegr@student.hive.fi>		+#+  +:+	   +#+		  */
-/*												  +#+#+#+#+#+	+#+			  */
-/*	 Created: 2025/02/14 08:39:33 by pleander		   #+#	  #+#			  */
-/*	 Updated: 2025/02/19 03:32:47 by jmakkone		  ###	########.fr		  */
-/*																			  */
->>>>>>> upstream/main
 /* ************************************************************************** */
 
 #include "Server.hpp"
@@ -364,8 +352,7 @@ void Server::executePrivmsgCommand(Message& msg, User& usr)
 	channel = args[0];
 	for (size_t i = 1; i < args.size(); i++)
 	{
-		if (i > 1)
-			message += " ";
+		if (i > 1) message += " ";
 		message += args[i];
 	}
 	if (!channel.empty() && !message.empty())
@@ -377,7 +364,9 @@ void Server::executePrivmsgCommand(Message& msg, User& usr)
 		}
 		else
 		{
-			std::string msg = "User " + std::to_string(clientFd) + " is not in channel " + channel + " or channel doesn't exist.\n";
+			std::string msg = "User " + std::to_string(clientFd) +
+							  " is not in channel " + channel +
+							  " or channel doesn't exist.\n";
 			Logger::log(Logger::ERROR, msg);
 		}
 	}
@@ -417,24 +406,28 @@ void Server::executeJoinCommand(Message& msg, User& usr)
 			continue;
 		}
 		auto it = _channels.find(channelName);
-		if (it == _channels.end()) {
+		if (it == _channels.end())
+		{
 			Channel newChannel(channelName, usr);
 			_channels.insert({newChannel.getName(), newChannel});
-			Logger::log(Logger::INFO, "user " + std::to_string(clientFd) + " created new channel " + channelName);
+			Logger::log(Logger::INFO, "user " + std::to_string(clientFd) +
+										  " created new channel " +
+										  channelName);
 			it = _channels.find(channelName);
 		}
 		else
 		{
 			if (it->second.getInviteMode() == false)
 				it->second.addUser(usr, channelPassword);
-			else {
+			else
+			{
 				if (it->second.checkIfUserInvited(usr))
 					it->second.addUser(usr, channelPassword);
 				else
 					Logger::log(Logger::WARNING,
-							"channel " + channelName +
-							" is in invite-only mode, user " +
-							std::to_string(clientFd) + "can't join");
+								"channel " + channelName +
+									" is in invite-only mode, user " +
+									std::to_string(clientFd) + "can't join");
 			}
 		}
 	}
@@ -481,13 +474,17 @@ void Server::executeModeCommand(Message& msg, User& usr)
 	//	std::cout << args[i] << std::endl;
 	std::string channel, mode, parameter;
 	channel = args[0];
-	mode = args[1]; // also thi is not gonna work since we can have something like this as input: MODE #example +i +t +l 5
-	parameter = (args.size() == 3 ? args[2] : ""); // i don't like this...to change
+	mode = args[1];  // also thi is not gonna work since we can have something
+					 // like this as input: MODE #example +i +t +l 5
+	parameter =
+		(args.size() == 3 ? args[2] : "");  // i don't like this...to change
 	auto it = _channels.find(channel);
 	if (it != _channels.end() && it->second.isUserAnOperatorInChannel(usr))
 	{
-		if (mode.find('i') != std::string::npos) {
-			if (mode == "+i") {
+		if (mode.find('i') != std::string::npos)
+		{
+			if (mode == "+i")
+			{
 				it->second.setInviteOnly();
 				Logger::log(Logger::DEBUG,
 							"user " + usr.getUsername() +
@@ -540,20 +537,31 @@ void Server::executeModeCommand(Message& msg, User& usr)
 											   " removed password in channel " +
 											   channel);
 			}
-		} else if (mode.find('o') != std::string::npos) {
-			for (auto itU = users_.begin(); itU != users_.end(); itU++) {
-				if (itU->second.getUsername() == parameter) {
-					if (mode == "+o" && it->second.isUserInChannel(itU->second)) {
+		}
+		else if (mode.find('o') != std::string::npos)
+		{
+			for (auto itU = users_.begin(); itU != users_.end(); itU++)
+			{
+				if (itU->second.getUsername() == parameter)
+				{
+					if (mode == "+o" && it->second.isUserInChannel(itU->second))
+					{
 						it->second.addOperator(itU->second);
-						Logger::log(Logger::DEBUG, "user " + usr.getUsername() +
-							" gave operator privilege for channel " + channel +
-							" to user " + usr.getUsername());
+						Logger::log(
+							Logger::DEBUG,
+							"user " + usr.getUsername() +
+								" gave operator privilege for channel " +
+								channel + " to user " + usr.getUsername());
 					}
-					if (mode == "-o" && it->second.isUserAnOperatorInChannel(itU->second)) {
+					if (mode == "-o" &&
+						it->second.isUserAnOperatorInChannel(itU->second))
+					{
 						it->second.removeOperator(itU->second);
-						Logger::log(Logger::DEBUG, "user " + usr.getUsername() +
-							" revoked operator privilege for channel " + channel +
-							" to user " + usr.getUsername());
+						Logger::log(
+							Logger::DEBUG,
+							"user " + usr.getUsername() +
+								" revoked operator privilege for channel " +
+								channel + " to user " + usr.getUsername());
 					}
 				}
 			}
@@ -603,10 +611,10 @@ void Server::executeInviteCommand(Message& msg, User& usr)
 	user = args[0];
 	channel = args[1];
 	auto it = _channels.find(channel);
-	if (it != _channels.end() && it->second.isUserAnOperatorInChannel(usr)) {
+	if (it != _channels.end() && it->second.isUserAnOperatorInChannel(usr))
+	{
 		auto itU = users_.find(std::stoi(user));
-		if (itU != users_.end())
-			it->second.inviteUser(usr, itU->second);
+		if (itU != users_.end()) it->second.inviteUser(usr, itU->second);
 	}
 }
 
@@ -629,12 +637,14 @@ void Server::executeKickCommand(Message& msg, User& usr)
 	{
 		for (auto itU = users_.begin(); itU != users_.end(); itU++)
 		{
-			if (itU->second.getUsername() == user) // not sure if username or nickname
-			{ 
+			if (itU->second.getUsername() ==
+				user)  // not sure if username or nickname
+			{
 				it->second.removeUser(usr, itU->second, reason);
 				Logger::log(Logger::DEBUG, "User " + usr.getUsername() +
-					" kicked out user " + itU->second.getUsername() +
-					" from channel " + channel);
+											   " kicked out user " +
+											   itU->second.getUsername() +
+											   " from channel " + channel);
 			}
 		}
 	}
