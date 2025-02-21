@@ -169,11 +169,24 @@ void Channel::part(User &usr, const std::string &partMessage)
 }
 
 void Channel::showOrSetTopic(User &usr, std::string newTopic, int unsetTopicFlag) {
+	if (!isUserInChannel(usr))
+	{
+		usr.sendData(errUserNotInChannel(SERVER_NAME, usr.getNick(), _name));
+		return;
+	}
+	if (_restrictionsOnTopic == true)
+	{
+		if (!isUserAnOperatorInChannel(usr))
+		{
+			usr.sendData(errChanPrivsNeeded(SERVER_NAME, usr.getNick(), _name));
+			return;
+		}
+	}
 	if (unsetTopicFlag)
 	{
-		_topic.clear();
 		usr.sendData(rplTopic(SERVER_NAME, usr.getNick(), _name, _topic));
 		Logger::log(Logger::INFO, "User " + usr.getNick() + " removed topic from channel " + _name);
+		_topic.clear();
 	}
 	else
 	{
