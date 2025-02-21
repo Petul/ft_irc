@@ -12,16 +12,15 @@
 
 #include "User.hpp"
 
+#include <arpa/inet.h>
+#include <netinet/in.h>
 #include <unistd.h>
 
-#include <algorithm>
 #include <stdexcept>
 #include <string>
 
 #include "Logger.hpp"
 #include "sys/socket.h"
-#include <arpa/inet.h>
-#include <netinet/in.h>
 
 User::User() : sockfd_{-1}
 {
@@ -41,34 +40,6 @@ User::User(int sockfd) : sockfd_{sockfd}, registered_{false}
 	}
 }
 
-
-User::User(const User& o)
-    : sockfd_{o.sockfd_},
-      recv_buf_{o.recv_buf_},
-      registered_{o.registered_},
-      password_{o.password_},
-      username_{o.username_},
-      nick_{o.nick_},
-	  host_{o.host_}
-{
-}
-
-User& User::operator=(const User& o)
-{
-	if (this == &o)
-	{
-		return (*this);
-	}
-	this->sockfd_ = o.sockfd_;
-	this->username_ = o.username_;
-	this->nick_ = o.nick_;
-	this->recv_buf_ = o.recv_buf_;
-	this->password_ = o.password_;
-	this->registered_ = o.registered_;
-	this->host_ = o.host_;
-	return (*this);
-}
-
 /**
  * @brief Receives data from the user's socket. Throws an error on failure.
  *
@@ -77,9 +48,9 @@ User& User::operator=(const User& o)
  */
 int User::receiveData()
 {
-	std::string buf(1024, 0);
+	std::string buf(512, 0);
 	int n_bytes =
-	    recv(this->sockfd_, const_cast<char*>(buf.data()), buf.size(), 0);
+		recv(this->sockfd_, const_cast<char*>(buf.data()), buf.size(), 0);
 	// Client closed the connection
 	if (n_bytes == 0)
 	{
@@ -88,17 +59,11 @@ int User::receiveData()
 	}
 	if (n_bytes < 0)
 	{
-		throw std::runtime_error{"receiveData"};
+		throw std::runtime_error{"Failed to receive data from user " + nick_};
 	}
 	buf = buf.substr(0, n_bytes);  // Truncate buf to size of data
 	Logger::log(Logger::DEBUG, "Received data from user " +
-	                               std::to_string(sockfd_) + ": " + buf);
-	// Check line break format
-	if (buf.compare(n_bytes - 2, 2, "\r\n") != 0)
-	{
-		throw std::invalid_argument{
-		    "Incorrect line break format, CRLF required"};
-	}
+								   std::to_string(sockfd_) + ": " + buf);
 	recv_buf_ += buf;
 	return (1);
 }
@@ -118,6 +83,16 @@ int User::getNextMessage(std::string& buf)
 		return (0);
 	}
 	size_t pos = recv_buf_.find("\r\n", 0);
+	if (pos == std::string::npos)
+	{
+		return (0);
+	}
+	if (pos > 509)  // Message too long. 512 minus \r\n
+	{
+		sendData("ERROR message too long\r\n");
+		recv_buf_.erase(recv_buf_.begin(), recv_buf_.begin() + pos + 2);
+		return (0);
+	}
 	buf = recv_buf_.substr(0, pos);
 	recv_buf_.erase(recv_buf_.begin(), recv_buf_.begin() + pos + 2);
 	return (1);
@@ -131,14 +106,12 @@ int User::getNextMessage(std::string& buf)
  */
 int User::sendData(const std::string& buf)
 {
-	//::send(this->sockfd_, buf.c_str(), buf.length(), 0);
-	int n_bytes =
-	    write(this->sockfd_, buf.c_str(), buf.length());
-	    //write(this->sockfd_, const_cast<char*>(buf.data()), buf.size());
+	int n_bytes = write(this->sockfd_, buf.c_str(), buf.length());
 	if (n_bytes < 0)
 	{
-		throw std::runtime_error{"Error: sendData"};
+		throw std::runtime_error{"Failed to send data to user " + nick_};
 	}
+	Logger::log(Logger::DEBUG, "Sent data to user " + nick_ + ": " + buf);
 	return (n_bytes);
 }
 
@@ -158,7 +131,7 @@ bool User::isRegistered()
 	return (registered_);
 }
 
-std::string& User::getPassword()
+const std::string& User::getPassword() const
 {
 	return (password_);
 }
@@ -168,7 +141,7 @@ void User::setNick(std::string& nick)
 	nick_ = nick;
 }
 
-std::string& User::getNick()
+const std::string& User::getNick() const
 {
 	return (nick_);
 }
@@ -178,17 +151,27 @@ void User::setUsername(std::string& username)
 	username_ = username;
 }
 
-std::string& User::getUsername()
+const std::string& User::getUsername() const
 {
 	return (username_);
 }
 
-int User::getSocket()
+int User::getSocket() const
 {
 	return (sockfd_);
 }
 
-std::string& User::getHost()
+const std::string& User::getHost() const
 {
-    return (host_);
+	return (host_);
+}
+
+const std::string& User::getRealname() const
+{
+	return (realname_);
+}
+
+void User::setRealName(std::string& realname)
+{
+	realname_ = realname;
 }

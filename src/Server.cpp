@@ -32,14 +32,12 @@
 #include "sys/socket.h"
 
 Server::Server(std::string server_pass, int server_port)
-	: server_pass_{server_pass},
-	  server_port_{server_port}
+	: server_pass_{server_pass}, server_port_{server_port}
 {
 	_server = this;
 }
 
-Server::Server(const Server& o)
-	: Server(o.server_pass_, o.server_port_)
+Server::Server(const Server& o) : Server(o.server_pass_, o.server_port_)
 {
 }
 
@@ -61,6 +59,7 @@ void Server::handleSignal(int signum)
 	static_cast<void>(signum);
 	Logger::log(Logger::INFO, "Server shutting down. Goodbye..");
 	if (_server) close(_server->_serverSocket);
+	_server->~Server();
 	exit(0);
 }
 const std::map<COMMANDTYPE, Server::executeFunc> Server::execute_map_ = {
@@ -142,9 +141,13 @@ void Server::startServer()
 						receiveDataFromClient(i);
 					}
 				}
-				catch (std::exception& e)
+				catch (std::invalid_argument& e)
 				{
 					Logger::log(Logger::WARNING, e.what());
+				}
+				catch (std::exception& e)
+				{
+					Logger::log(Logger::ERROR, e.what());
 				}
 			}
 		}
@@ -307,6 +310,7 @@ void Server::user(Message& msg, User& usr)
 		throw std::invalid_argument{"Invalid number of arguments"};
 	}
 	usr.setUsername(msg.getArgs().front());
+	usr.setRealName(msg.getArgs().back());
 	if (!usr.isRegistered())
 	{
 		attemptRegistration(usr);
@@ -391,13 +395,15 @@ void Server::privmsg(Message& msg, User& usr)
 			auto chanIt = _channels.find(target);
 			if (chanIt == _channels.end())
 			{
-				usr.sendData(errNoSuchChannel(SERVER_NAME, usr.getNick(), target));
+				usr.sendData(
+					errNoSuchChannel(SERVER_NAME, usr.getNick(), target));
 			}
 			else
 			{
 				if (!chanIt->second.isUserInChannel(usr))
 				{
-					usr.sendData(errCannotSendToChan(SERVER_NAME, usr.getNick(), target));
+					usr.sendData(errCannotSendToChan(SERVER_NAME, usr.getNick(),
+													 target));
 				}
 				else
 				{
@@ -413,11 +419,13 @@ void Server::privmsg(Message& msg, User& usr)
 			{
 				if (userPair.second.getNick() == target)
 				{
-					std::string fullMsg = rplPrivMsg(usr.getNick(), target, message);
-				//	if (userPair.second.isAway())
-				//	{
-				//		usr.sendData(rplAway(SERVER_NAME, usr.getNick(), target, userPair.second.getAwayMessage()))
-				//	}
+					std::string fullMsg =
+						rplPrivMsg(usr.getNick(), target, message);
+					//	if (userPair.second.isAway())
+					//	{
+					//		usr.sendData(rplAway(SERVER_NAME, usr.getNick(),
+					// target, userPair.second.getAwayMessage()))
+					//	}
 					userPair.second.sendData(fullMsg);
 					found = true;
 					break;
@@ -479,14 +487,16 @@ void Server::join(Message& msg, User& usr)
 			if (it->second.getInviteMode() == false)
 			{
 				it->second.addUser(usr, channelPassword);
-				it->second.displayMessage(usr, rplJoin(usr.getNick(), usr.getHost(), channel));
+				it->second.displayMessage(
+					usr, rplJoin(usr.getNick(), usr.getHost(), channel));
 			}
 			else
 			{
 				if (it->second.checkIfUserInvited(usr))
 				{
 					it->second.addUser(usr, channelPassword);
-					it->second.displayMessage(usr, rplJoin(usr.getNick(), usr.getHost(), channel));
+					it->second.displayMessage(
+						usr, rplJoin(usr.getNick(), usr.getHost(), channel));
 				}
 				else
 					Logger::log(Logger::WARNING,
@@ -518,18 +528,19 @@ void Server::part(Message& msg, User& usr)
 	std::string channelName;
 	while (std::getline(iss, channelName, ','))
 	{
-		if (channelName.empty())
-			continue;
+		if (channelName.empty()) continue;
 
 		auto it = _channels.find(channelName);
 		if (it == _channels.end())
 		{
-			usr.sendData(errNoSuchChannel(SERVER_NAME, usr.getNick(), channelName));
+			usr.sendData(
+				errNoSuchChannel(SERVER_NAME, usr.getNick(), channelName));
 			continue;
 		}
 		if (!it->second.isUserInChannel(usr))
 		{
-			usr.sendData(errNotOnChannel(SERVER_NAME, usr.getNick(), channelName));
+			usr.sendData(
+				errNotOnChannel(SERVER_NAME, usr.getNick(), channelName));
 			continue;
 		}
 		it->second.part(usr, partMessage);
@@ -542,14 +553,17 @@ void Server::part(Message& msg, User& usr)
 
 void Server::quit(Message& msg, User& usr)
 {
-	std::string quitMessage = (msg.getArgs().empty() ? "Quit" : msg.getArgs()[0]);
+	std::string quitMessage =
+		(msg.getArgs().empty() ? "Quit" : msg.getArgs()[0]);
 
-	std::string senderFullID = usr.getNick() + "!" + usr.getUsername() + "@" + usr.getHost();
-	std::string fullQuitMsg = ":" + senderFullID + " QUIT :" + quitMessage + "\r\n";
+	std::string senderFullID =
+		usr.getNick() + "!" + usr.getUsername() + "@" + usr.getHost();
+	std::string fullQuitMsg =
+		":" + senderFullID + " QUIT :" + quitMessage + "\r\n";
 
-	for (auto &chanPair : _channels)
+	for (auto& chanPair : _channels)
 	{
-		Channel &chan = chanPair.second;
+		Channel& chan = chanPair.second;
 		if (chan.isUserInChannel(usr))
 		{
 			chan.displayMessage(usr, fullQuitMsg);
@@ -608,7 +622,9 @@ void Server::mode(Message& msg, User& usr)
 							"user " + usr.getUsername() +
 								" set invite only mode ON in channel " +
 								channel);
-				it->second.displayMessage(usr, ":" + usr.getNick() + "!ourserver MODE " + channel + " " + mode);
+				it->second.displayMessage(usr, ":" + usr.getNick() +
+												   "!ourserver MODE " +
+												   channel + " " + mode);
 			}
 			if (mode == "-i")
 			{
@@ -746,9 +762,9 @@ void Server::invite(Message& msg, User& usr)
 	{
 		_channels.at(args[1]).inviteUser(usr, users_, args[0]);
 	}
-	catch (std::exception &e)
+	catch (std::exception& e)
 	{
-		std::cerr << e.what() <<std::endl;
+		std::cerr << e.what() << std::endl;
 	}
 }
 
@@ -764,9 +780,10 @@ void Server::kick(Message& msg, User& usr)
 	std::vector<std::string> args = msg.getArgs();
 	try
 	{
-		_channels.at(args[0]).kickUser(usr, args[1], args.size() == 3 ? args[2] : "");
+		_channels.at(args[0]).kickUser(usr, args[1],
+									   args.size() == 3 ? args[2] : "");
 	}
-	catch (std::exception &e)
+	catch (std::exception& e)
 	{
 		std::cerr << e.what() << std::endl;
 	}
@@ -791,8 +808,8 @@ void Server::ping(Message& msg, User& usr)
 						usr.getNick());
 		return;
 	}
-	std::string pongResponse = std::string(":") + SERVER_NAME + " PONG " + SERVER_NAME +
-							   " :" + msg.getArgs()[0] + "\r\n";
+	std::string pongResponse = std::string(":") + SERVER_NAME + " PONG " +
+							   SERVER_NAME + " :" + msg.getArgs()[0] + "\r\n";
 
 	usr.sendData(pongResponse);
 	Logger::log(Logger::DEBUG, "Sent PONG to user " + usr.getNick());
