@@ -19,28 +19,15 @@
 #include "Logger.hpp"
 
 Message::Message(std::string& raw_message)
-    : raw_message_{raw_message}, msg_ss_{raw_message}
+	: raw_message_{raw_message}, msg_ss_{raw_message}
 {
 }
 
 const std::map<std::string, COMMANDTYPE> Message::command_map_ = {
-	{"PASS", PASS},
-	{"NICK", NICK},
-	{"USER", USER},
-	{"OPER", OPER},
-	{"PRIVMSG", PRIVMSG},
-	{"JOIN", JOIN},
-	{"PART", PART},
-	{"INVITE", INVITE},
-	{"WHO", WHO},
-	{"QUIT", QUIT},
-	{"MODE", MODE},
-	{"KICK", KICK},
-	{"NOTICE", NOTICE},
-	{"TOPIC", TOPIC},
-	{"PING", PING},
-	{"PONG", PONG}
-};
+	{"PASS", PASS},       {"NICK", NICK},   {"USER", USER}, {"OPER", OPER},
+	{"PRIVMSG", PRIVMSG}, {"JOIN", JOIN},   {"PART", PART}, {"INVITE", INVITE},
+	{"WHO", WHO},         {"QUIT", QUIT},   {"MODE", MODE}, {"KICK", KICK},
+	{"NOTICE", NOTICE},   {"TOPIC", TOPIC}, {"PING", PING}, {"PONG", PONG}};
 
 void Message::parseMessage()
 {
@@ -80,10 +67,11 @@ void Message::parseType()
 	if (it != command_map_.end())
 	{
 		cmd_type_ = it->second;
-	} 
+	}
 	else
 	{
-		throw std::invalid_argument("Invalid command: " + command);
+		throw std::invalid_argument("Invalid command: " +
+									command);  // Reply to the user instead
 	}
 }
 
