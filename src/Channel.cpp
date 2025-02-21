@@ -167,3 +167,40 @@ void Channel::part(User &usr, const std::string &partMessage)
 	removeUser(usr);
 	Logger::log(Logger::INFO, "User " + usr.getNick() + " parted channel " + _name);
 }
+
+void Channel::showOrSetTopic(User &usr, std::string newTopic, int unsetTopicFlag) {
+	if (unsetTopicFlag)
+	{
+		_topic.clear();
+		usr.sendData(rplTopic(SERVER_NAME, usr.getNick(), _name, _topic));
+		Logger::log(Logger::INFO, "User " + usr.getNick() + " removed topic from channel " + _name);
+	}
+	else
+	{
+		if (newTopic.empty())
+		{
+			if (_topic.empty())
+			{
+				usr.sendData(rplNoTopic(SERVER_NAME, usr.getNick(), _name));
+				Logger::log(Logger::INFO, "User " + usr.getNick() +
+							" requested topic from channel " + _name + 
+							" but topic is not set");
+			}
+			else
+			{
+				usr.sendData(rplTopic(SERVER_NAME, usr.getNick(), _name, _topic));
+				Logger::log(Logger::INFO, "User " + usr.getNick() +
+							" topic of channel " + _name + " is " + _topic);
+			}
+		}
+		else
+		{
+			_topic = newTopic;
+			usr.sendData(rplTopic(SERVER_NAME, usr.getNick(), _name, _topic));
+			displayMessage(usr, rplTopic(SERVER_NAME, usr.getNick(), _name, _topic));
+			Logger::log(Logger::INFO, "User " + usr.getNick() +
+							" changet topic in channel " + _name +
+							", new topic is " + _topic);
+		}
+	}
+}
