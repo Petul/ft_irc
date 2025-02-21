@@ -12,8 +12,6 @@
 
 #pragma once
 
-#include <bits/std_thread.h>
-
 #include <string>
 
 class User
