@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 13:32:51 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/21 00:06:36 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/22 01:04:51 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,7 @@
 #include <string>
 
 #include "Logger.hpp"
+#include "Server.hpp"
 #include "sys/socket.h"
 
 User::User() : sockfd_{-1}
@@ -174,4 +175,55 @@ const std::string& User::getRealname() const
 void User::setRealName(std::string& realname)
 {
 	realname_ = realname;
+}
+
+// Away is set by some other setter function, this heavily depend on OPER being implemented, so it's just a sketch with same format than applyChannelMode.
+void User::applyUserMode(User &setter,
+		const std::string &modes,
+		const std::string &param)
+{
+	if (modes.empty())
+	{
+		// maybe 221 RPL_UMODEIS
+		// setter.sendData(rplUmodeIs());
+		return;
+	}
+
+	bool adding = true;
+	for (size_t i = 0; i < modes.size(); ++i)
+	{
+		char c = modes[i];
+		if (c == '+')
+		{
+			adding = true;
+		}
+		else if (c == '-')
+		{
+			adding = false;
+		}
+		else
+		{
+			switch (c)
+			{
+				case 'i': // invisible
+					break;
+				case 'w': // what the heck even this is?
+					break;
+				case 'o': // TODO need oper
+						  // if (!setter.isServerOperator()) >> ERR_NOPRIVILEGES
+					break;
+				default:
+					setter.sendData(errUnknownModeFlag(SERVER_NAME, setter.getNick()));
+					break;
+			}
+		}
+	}
+
+	std::string modeChangeMsg = ":" + setter.getNick() + "!" + setter.getUsername() + "@" +
+		setter.getHost() + " MODE " + this->nick_ + " " + modes + "\r\n";
+	setter.sendData(modeChangeMsg);
+	if (this != &setter)
+	{
+		this->sendData(modeChangeMsg);
+	}
 }

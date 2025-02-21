@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/21 15:58:46 by mpellegr         ###   ########.fr       */
+/*   Updated: 2025/02/22 00:45:52 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -407,7 +407,7 @@ void Server::privmsg(Message& msg, User& usr)
 				}
 				else
 				{
-					chanIt->second.displayMessage(usr, message);
+					chanIt->second.displayChannelMessage(usr, message);
 				}
 			}
 		}
@@ -443,68 +443,65 @@ void Server::join(Message& msg, User& usr)
 {
 	/*Numeric Replies:*/
 	/**/
-	/*			ERR_NEEDMOREPARAMS				ERR_BANNEDFROMCHAN*/
-	/*			ERR_INVITEONLYCHAN				ERR_BADCHANNELKEY*/
-	/*			ERR_CHANNELISFULL				ERR_BADCHANMASK*/
-	/*			ERR_NOSUCHCHANNEL				ERR_TOOMANYCHANNELS*/
-	/*			ERR_TOOMANYTARGETS				ERR_UNAVAILRESOURCE*/
-	/*			RPL_TOPIC*/
-	// joinChannel(msg.getArgs(), usr.getSocket(), _server);
-	std::vector<std::string> args = msg.getArgs();
-	int clientFd = usr.getSocket();
-	std::vector<std::pair<std::string, std::string>> channelsAndPasswords;
-	std::stringstream ssChannel(args[0]);
-	std::stringstream ssPassword(args.size() > 1 ? args[1] : "");
-	std::string channel, password;
-	while (std::getline(ssChannel, channel, ','))
+	/*		 ✓	ERR_NEEDMOREPARAMS			   ERR_BANNEDFROMCHAN*/
+	/*		 ✓	ERR_INVITEONLYCHAN			✓  ERR_BADCHANNELKEY*/
+	/*		 ✓	ERR_CHANNELISFULL			   ERR_BADCHANMASK*/
+	/*		 ✓	ERR_NOSUCHCHANNEL			   ERR_TOOMANYCHANNELS*/
+	/*			ERR_TOOMANYTARGETS			   ERR_UNAVAILRESOURCE*/
+	/*		 ✓	RPL_TOPIC*/
+	if (msg.getArgs().empty())
 	{
-		if (std::getline(ssPassword, password, ','))
-			channelsAndPasswords.push_back({channel, password});
-		else
-			channelsAndPasswords.push_back({channel, ""});
+		usr.sendData(errNeedMoreParams(SERVER_NAME, usr.getNick(), "JOIN"));
+		return;
 	}
-	for (size_t i = 0; i < channelsAndPasswords.size(); i++)
+
+	std::string channelArg = msg.getArgs()[0];
+	std::string passwordArg = (msg.getArgs().size() > 1) ? msg.getArgs()[1] : "";
+
+	std::istringstream channelStream(channelArg);
+	std::istringstream passwordStream(passwordArg);
+	std::string channelName, channelPassword;
+
+	while (std::getline(channelStream, channelName, ','))
 	{
-		std::string channelName = channelsAndPasswords[i].first;
-		std::string channelPassword = channelsAndPasswords[i].second;
+		if (!passwordStream.eof())
+		{
+			if (!std::getline(passwordStream, channelPassword, ','))
+			{
+				channelPassword.clear();
+			}
+		}
+		else
+		{
+			channelPassword.clear();
+		}
+
 		if (channelName.empty() || channelName[0] != '#')
 		{
-			std::cout << "Invalid channel name: " << channelName << std::endl;
+			usr.sendData(errNoSuchChannel(SERVER_NAME, usr.getNick(), channelName));
 			continue;
 		}
-		auto it = _channels.find(channelName);
+
+		std::unordered_map<std::string, Channel>::iterator it = _channels.find(channelName);
 		if (it == _channels.end())
 		{
 			Channel newChannel(channelName, usr);
-			_channels.insert({newChannel.getName(), newChannel});
-			Logger::log(Logger::INFO, "user " + std::to_string(clientFd) +
-										  " created new channel " +
-										  channelName);
+			if (!channelPassword.empty())
+			{
+				newChannel.setPassword(channelPassword);
+			}
+
+			_channels.insert(std::make_pair(channelName, newChannel));
 			it = _channels.find(channelName);
+
+			Logger::log(Logger::INFO,
+					"User " + std::to_string(usr.getSocket()) +
+					" created new channel " + channelName);
 		}
-		else
-		{
-			if (it->second.getInviteMode() == false)
-			{
-				it->second.addUser(usr, channelPassword);
-				it->second.displayMessage(
-					usr, rplJoin(usr.getNick(), usr.getHost(), channel));
-			}
-			else
-			{
-				if (it->second.checkIfUserInvited(usr))
-				{
-					it->second.addUser(usr, channelPassword);
-					it->second.displayMessage(
-						usr, rplJoin(usr.getNick(), usr.getHost(), channel));
-				}
-				else
-					Logger::log(Logger::WARNING,
-								"channel " + channelName +
-									" is in invite-only mode, user " +
-									std::to_string(clientFd) + "can't join");
-			}
-		}
+
+		Channel& channel = it->second;
+
+		channel.joinUser(SERVER_NAME, usr, channelPassword);
 	}
 }
 
@@ -534,16 +531,16 @@ void Server::part(Message& msg, User& usr)
 		if (it == _channels.end())
 		{
 			usr.sendData(
-				errNoSuchChannel(SERVER_NAME, usr.getNick(), channelName));
+					errNoSuchChannel(SERVER_NAME, usr.getNick(), channelName));
 			continue;
 		}
 		if (!it->second.isUserInChannel(usr))
 		{
 			usr.sendData(
-				errNotOnChannel(SERVER_NAME, usr.getNick(), channelName));
+					errNotOnChannel(SERVER_NAME, usr.getNick(), channelName));
 			continue;
 		}
-		it->second.part(usr, partMessage);
+		it->second.partUser(usr, partMessage);
 		if (it->second.getUserCount() == 0)
 		{
 			_channels.erase(it);
@@ -553,24 +550,19 @@ void Server::part(Message& msg, User& usr)
 
 void Server::quit(Message& msg, User& usr)
 {
-	std::string quitMessage =
-		(msg.getArgs().empty() ? "Quit" : msg.getArgs()[0]);
-
-	std::string senderFullID =
-		usr.getNick() + "!" + usr.getUsername() + "@" + usr.getHost();
-	std::string fullQuitMsg =
-		":" + senderFullID + " QUIT :" + quitMessage + "\r\n";
+	std::string quitMsg = rplQuit(usr.getNick(), usr.getUsername(),
+			usr.getHost(), msg.getArgs().empty() ? "Quit" : msg.getArgs()[0]);
 
 	for (auto& chanPair : _channels)
 	{
 		Channel& chan = chanPair.second;
 		if (chan.isUserInChannel(usr))
 		{
-			chan.displayMessage(usr, fullQuitMsg);
+			chan.displayChannelMessage(usr, quitMsg);
 			chan.removeUser(usr);
 		}
 	}
-	usr.sendData(fullQuitMsg);
+	usr.sendData(quitMsg);
 
 	int fd = usr.getSocket();
 	// Works, but can we make it better?
@@ -585,143 +577,225 @@ void Server::quit(Message& msg, User& usr)
 	users_.erase(fd);
 	close(fd);
 	Logger::log(Logger::DEBUG, "Number of connected clients: " +
-								   std::to_string(poll_fds_.size() - 1));
+			std::to_string(poll_fds_.size() - 1));
 }
 
 // maybe all the logs could be moved inside each function
-void Server::mode(Message& msg, User& usr)
+//void Server::mode(Message& msg, User& usr)
+//{
+//	/*Numeric Replies:*/
+//	/**/
+//	/*	ERR_NEEDMOREPARAMS				ERR_KEYSET*/
+//	/*	ERR_NOCHANMODES					ERR_CHANOPRIVSNEEDED*/
+//	/*	ERR_USERNOTINCHANNEL			ERR_UNKNOWNMODE*/
+//	/*	RPL_CHANNELMODEIS*/
+//	/*	RPL_BANLIST						RPL_ENDOFBANLIST*/
+//	/*	RPL_EXCEPTLIST					RPL_ENDOFEXCEPTLIST*/
+//	/*	RPL_INVITELIST					RPL_ENDOFINVITELIST*/
+//	/*	RPL_UNIQOPIS*/
+//	std::vector<std::string> args = msg.getArgs();
+//	// for (size_t i= 0; i < args.size(); i++)
+//	//	std::cout << args[i] << std::endl;
+//	std::string channel, mode, parameter;
+//	channel = args[0];
+//	mode = args[1];  // also thi is not gonna work since we can have something
+//					 // like this as input: MODE #example +i +t +l 5
+//	parameter =
+//		(args.size() == 3 ? args[2] : "");  // i don't like this...to change
+//	auto it = _channels.find(channel);
+//	if (it != _channels.end() && it->second.isUserAnOperatorInChannel(usr))
+//	{
+//		if (mode.find('i') != std::string::npos)
+//		{
+//			if (mode == "+i")
+//			{
+//				it->second.setInviteOnly();
+//				Logger::log(Logger::DEBUG,
+//						"user " + usr.getUsername() +
+//						" set invite only mode ON in channel " +
+//						channel);
+//				it->second.displayChannelMessage(usr, ":" + usr.getNick() +
+//						"!ourserver MODE " +
+//						channel + " " + mode);
+//			}
+//			if (mode == "-i")
+//			{
+//				it->second.unsetInviteOnly();
+//				Logger::log(Logger::DEBUG,
+//						"user " + usr.getUsername() +
+//						" set invite only mode OFF in channel " +
+//						channel);
+//			}
+//		}
+//		else if (mode.find('t') != std::string::npos)
+//		{
+//			if (mode == "+t")
+//			{
+//				it->second.setRestrictionsOnTopic();
+//				Logger::log(
+//						Logger::DEBUG,
+//						"user " + usr.getUsername() +
+//						" set restrictions on topic mode ON in channel " +
+//						channel);
+//			}
+//			if (mode == "-t")
+//			{
+//				it->second.unsetRestrictionsOnTopic();
+//				Logger::log(
+//						Logger::DEBUG,
+//						"user " + usr.getUsername() +
+//						" set restrictions on topic mode OFF in channel " +
+//						channel);
+//			}
+//		}
+//		else if (mode.find('k') != std::string::npos)
+//		{
+//			if (mode == "+k")
+//			{
+//				it->second.setPassword(parameter);
+//				Logger::log(Logger::DEBUG, "user " + usr.getUsername() +
+//						" set password in channel " +
+//						channel);
+//			}
+//			if (mode == "-k")
+//			{
+//				it->second.unsetPasword();
+//				Logger::log(Logger::DEBUG, "user " + usr.getUsername() +
+//						" removed password in channel " +
+//						channel);
+//			}
+//		}
+//		else if (mode.find('o') != std::string::npos)
+//		{
+//			for (auto itU = users_.begin(); itU != users_.end(); itU++)
+//			{
+//				if (itU->second.getUsername() == parameter)
+//				{
+//					if (mode == "+o" && it->second.isUserInChannel(itU->second))
+//					{
+//						it->second.addOperator(itU->second);
+//						Logger::log(
+//								Logger::DEBUG,
+//								"user " + usr.getUsername() +
+//								" gave operator privilege for channel " +
+//								channel + " to user " + usr.getUsername());
+//					}
+//					if (mode == "-o" &&
+//							it->second.isUserAnOperatorInChannel(itU->second))
+//					{
+//						it->second.removeOperator(itU->second);
+//						Logger::log(
+//								Logger::DEBUG,
+//								"user " + usr.getUsername() +
+//								" revoked operator privilege for channel " +
+//								channel + " to user " + usr.getUsername());
+//					}
+//				}
+//			}
+//			Logger::log(Logger::DEBUG, "username " + parameter +
+//					" not existing or not in channel " +
+//					channel);
+//		}
+//		else if (mode.find('l') != std::string::npos)
+//		{
+//			if (mode == "+l" && std::stoi(parameter))
+//			{
+//				it->second.setUserLimit(
+//						std::stoi(parameter));  // to check/protect
+//				Logger::log(Logger::DEBUG, "User " + usr.getUsername() +
+//						"set channel limit to " +
+//						parameter + " users");
+//			}
+//			if (mode == "-l")
+//			{
+//				it->second.unsetUserLimit();
+//				Logger::log(Logger::DEBUG, "User " + usr.getUsername() +
+//						"unset channel limit");
+//			}
+//		}
+//	}
+//}
+
+void Server::mode(Message &msg, User &usr)
 {
-	/*Numeric Replies:*/
-	/**/
-	/*	ERR_NEEDMOREPARAMS				ERR_KEYSET*/
-	/*	ERR_NOCHANMODES					ERR_CHANOPRIVSNEEDED*/
-	/*	ERR_USERNOTINCHANNEL			ERR_UNKNOWNMODE*/
-	/*	RPL_CHANNELMODEIS*/
-	/*	RPL_BANLIST						RPL_ENDOFBANLIST*/
-	/*	RPL_EXCEPTLIST					RPL_ENDOFEXCEPTLIST*/
-	/*	RPL_INVITELIST					RPL_ENDOFINVITELIST*/
-	/*	RPL_UNIQOPIS*/
-	std::vector<std::string> args = msg.getArgs();
-	// for (size_t i= 0; i < args.size(); i++)
-	//	std::cout << args[i] << std::endl;
-	std::string channel, mode, parameter;
-	channel = args[0];
-	mode = args[1];  // also thi is not gonna work since we can have something
-					 // like this as input: MODE #example +i +t +l 5
-	parameter =
-		(args.size() == 3 ? args[2] : "");  // i don't like this...to change
-	auto it = _channels.find(channel);
-	if (it != _channels.end() && it->second.isUserAnOperatorInChannel(usr))
-	{
-		if (mode.find('i') != std::string::npos)
-		{
-			if (mode == "+i")
-			{
-				it->second.setInviteOnly();
-				Logger::log(Logger::DEBUG,
-							"user " + usr.getUsername() +
-								" set invite only mode ON in channel " +
-								channel);
-				it->second.displayMessage(usr, ":" + usr.getNick() +
-												   "!ourserver MODE " +
-												   channel + " " + mode);
-			}
-			if (mode == "-i")
-			{
-				it->second.unsetInviteOnly();
-				Logger::log(Logger::DEBUG,
-							"user " + usr.getUsername() +
-								" set invite only mode OFF in channel " +
-								channel);
-			}
-		}
-		else if (mode.find('t') != std::string::npos)
-		{
-			if (mode == "+t")
-			{
-				it->second.setRestrictionsOnTopic();
-				Logger::log(
-					Logger::DEBUG,
-					"user " + usr.getUsername() +
-						" set restrictions on topic mode ON in channel " +
-						channel);
-			}
-			if (mode == "-t")
-			{
-				it->second.unsetRestrictionsOnTopic();
-				Logger::log(
-					Logger::DEBUG,
-					"user " + usr.getUsername() +
-						" set restrictions on topic mode OFF in channel " +
-						channel);
-			}
-		}
-		else if (mode.find('k') != std::string::npos)
-		{
-			if (mode == "+k")
-			{
-				it->second.setPassword(parameter);
-				Logger::log(Logger::DEBUG, "user " + usr.getUsername() +
-											   " set password in channel " +
-											   channel);
-			}
-			if (mode == "-k")
-			{
-				it->second.unsetPasword();
-				Logger::log(Logger::DEBUG, "user " + usr.getUsername() +
-											   " removed password in channel " +
-											   channel);
-			}
-		}
-		else if (mode.find('o') != std::string::npos)
-		{
-			for (auto itU = users_.begin(); itU != users_.end(); itU++)
-			{
-				if (itU->second.getUsername() == parameter)
-				{
-					if (mode == "+o" && it->second.isUserInChannel(itU->second))
-					{
-						it->second.addOperator(itU->second);
-						Logger::log(
-							Logger::DEBUG,
-							"user " + usr.getUsername() +
-								" gave operator privilege for channel " +
-								channel + " to user " + usr.getUsername());
-					}
-					if (mode == "-o" &&
-						it->second.isUserAnOperatorInChannel(itU->second))
-					{
-						it->second.removeOperator(itU->second);
-						Logger::log(
-							Logger::DEBUG,
-							"user " + usr.getUsername() +
-								" revoked operator privilege for channel " +
-								channel + " to user " + usr.getUsername());
-					}
-				}
-			}
-			Logger::log(Logger::DEBUG, "username " + parameter +
-										   " not existing or not in channel " +
-										   channel);
-		}
-		else if (mode.find('l') != std::string::npos)
-		{
-			if (mode == "+l" && std::stoi(parameter))
-			{
-				it->second.setUserLimit(
-					std::stoi(parameter));  // to check/protect
-				Logger::log(Logger::DEBUG, "User " + usr.getUsername() +
-											   "set channel limit to " +
-											   parameter + " users");
-			}
-			if (mode == "-l")
-			{
-				it->second.unsetUserLimit();
-				Logger::log(Logger::DEBUG, "User " + usr.getUsername() +
-											   "unset channel limit");
-			}
-		}
-	}
+    if (msg.getArgs().empty())
+    {
+        usr.sendData(errNeedMoreParams(SERVER_NAME, usr.getNick(), "MODE"));
+        return;
+    }
+
+    std::string target = msg.getArgs()[0];
+
+    if (!target.empty() && target[0] == '#')
+    {
+        handleChannelMode(msg, usr);
+    }
+    else
+    {
+        handleUserMode(msg, usr);
+    }
+}
+
+void Server::handleChannelMode(Message &msg, User &usr)
+{
+    std::vector<std::string> args = msg.getArgs();
+    if (args.size() < 2)
+    {
+        usr.sendData(errNeedMoreParams(SERVER_NAME, usr.getNick(), "MODE"));
+        return;
+    }
+    std::string channelName = args[0];
+    std::string modes      = args[1];
+
+    // If there’s a 3rd argument (like a limit or password), store it
+    std::string param = (args.size() >= 3) ? args[2] : "";
+
+    std::unordered_map<std::string, Channel>::iterator it = _channels.find(channelName);
+    if (it == _channels.end())
+    {
+        usr.sendData(errNoSuchChannel(SERVER_NAME, usr.getNick(), channelName));
+        return;
+    }
+
+    Channel &chan = it->second;
+
+    if (!chan.isUserInChannel(usr))
+    {
+        usr.sendData(errNotOnChannel(SERVER_NAME, usr.getNick(), channelName));
+        return;
+    }
+    if (!chan.isUserAnOperatorInChannel(usr))
+    {
+        usr.sendData(errChanPrivsNeeded(SERVER_NAME, usr.getNick(), channelName));
+        return;
+    }
+
+    chan.applyChannelMode(usr, modes, param);
+}
+
+void Server::handleUserMode(Message &msg, User &usr)
+{
+    std::vector<std::string> args = msg.getArgs();
+
+    std::string targetNick = args[0];
+    std::string modes     = (args.size() >= 2) ? args[1] : "";
+    std::string param     = (args.size() >= 3) ? args[2] : "";
+
+    User* targetUser = NULL;
+    for (std::unordered_map<int, User>::iterator it = users_.begin(); it != users_.end(); ++it)
+    {
+        if (it->second.getNick() == targetNick)
+        {
+            targetUser = &(it->second);
+            break;
+        }
+    }
+    if (!targetUser)
+    {
+        usr.sendData(errNoSuchNick(SERVER_NAME, usr.getNick(), targetNick));
+        return;
+    }
+    targetUser->applyUserMode(usr, modes, param);
 }
 
 void Server::topic(Message& msg, User& usr)
@@ -781,7 +855,7 @@ void Server::kick(Message& msg, User& usr)
 	try
 	{
 		_channels.at(args[0]).kickUser(usr, args[1],
-									   args.size() == 3 ? args[2] : "");
+				args.size() == 3 ? args[2] : "");
 	}
 	catch (std::exception& e)
 	{
@@ -804,12 +878,12 @@ void Server::ping(Message& msg, User& usr)
 	if (msg.getArgs().empty())
 	{
 		Logger::log(Logger::WARNING,
-					"PING command received with no parameters from user " +
-						usr.getNick());
+				"PING command received with no parameters from user " +
+				usr.getNick());
 		return;
 	}
 	std::string pongResponse = std::string(":") + SERVER_NAME + " PONG " +
-							   SERVER_NAME + " :" + msg.getArgs()[0] + "\r\n";
+		SERVER_NAME + " :" + msg.getArgs()[0] + "\r\n";
 
 	usr.sendData(pongResponse);
 	Logger::log(Logger::DEBUG, "Sent PONG to user " + usr.getNick());
