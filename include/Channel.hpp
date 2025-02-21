@@ -34,6 +34,7 @@ class Channel
 	std::string getName() const;
 	bool getInviteMode() const;
 	std::string getTopic() const;
+	unsigned int getUserCount() const;
 
 	void addUser(User &usr, std::string channelPassword);
 	// void inviteUser(User &invitingUsr, User &invitedUsr);
@@ -53,8 +54,10 @@ class Channel
 	void unsetRestrictionsOnTopic();
 
 	void addOperator(User &user);
+	void removeUser(User& user);
 	void removeOperator(User &user);
-	void removeUser(User &user, std::string targetUsername, std::string reason);
+	void kickUser(User &user, std::string targetUsername, std::string reason);
+	void part(User &usr, const std::string &partMessage);
 };
 
 // void joinChannel(std::string msg, int clientFd, Server *_server);

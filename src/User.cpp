@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 13:32:51 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/19 10:56:45 by mpellegr         ###   ########.fr       */
+/*   Updated: 2025/02/21 00:06:36 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,14 +20,27 @@
 
 #include "Logger.hpp"
 #include "sys/socket.h"
+#include <arpa/inet.h>
+#include <netinet/in.h>
 
 User::User() : sockfd_{-1}
 {
 }
 
-User::User(int sockfd) : sockfd_{sockfd}
+User::User(int sockfd) : sockfd_{sockfd}, registered_{false}
 {
+	struct sockaddr_in addr;
+	socklen_t addr_len = sizeof(addr);
+	if (getpeername(sockfd_, (struct sockaddr*)&addr, &addr_len) == 0)
+	{
+		host_ = inet_ntoa(addr.sin_addr);
+	}
+	else
+	{
+		host_ = "unknown";
+	}
 }
+
 
 User::User(const User& o)
     : sockfd_{o.sockfd_},
@@ -35,7 +48,8 @@ User::User(const User& o)
       registered_{o.registered_},
       password_{o.password_},
       username_{o.username_},
-      nick_{o.nick_}
+      nick_{o.nick_},
+	  host_{o.host_}
 {
 }
 
@@ -51,6 +65,7 @@ User& User::operator=(const User& o)
 	this->recv_buf_ = o.recv_buf_;
 	this->password_ = o.password_;
 	this->registered_ = o.registered_;
+	this->host_ = o.host_;
 	return (*this);
 }
 
@@ -118,7 +133,8 @@ int User::sendData(const std::string& buf)
 {
 	//::send(this->sockfd_, buf.c_str(), buf.length(), 0);
 	int n_bytes =
-	    write(this->sockfd_, const_cast<char*>(buf.data()), buf.size());
+	    write(this->sockfd_, buf.c_str(), buf.length());
+	    //write(this->sockfd_, const_cast<char*>(buf.data()), buf.size());
 	if (n_bytes < 0)
 	{
 		throw std::runtime_error{"Error: sendData"};
@@ -170,4 +186,9 @@ std::string& User::getUsername()
 int User::getSocket()
 {
 	return (sockfd_);
+}
+
+std::string& User::getHost()
+{
+    return (host_);
 }

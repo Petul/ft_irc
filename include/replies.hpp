@@ -6,7 +6,7 @@
 /*   By: jmakkone <jmakkone@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/18 17:55:46 by jmakkone          #+#    #+#             */
-/*   Updated: 2025/02/19 02:59:14 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/21 00:49:44 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -274,7 +274,7 @@ inline std::string errUnavailableResource(const std::string& serverName,
 
 
 
-// PART Command Replies/Errors
+// PART Command Replies
 
 // Broadcast PART message
 inline std::string rplPart(const std::string& nick,
@@ -487,8 +487,8 @@ inline std::string errUserOnChannel(const std::string& serverName,
 
 // KICK Command Replies/Errors
 
-// ERR_NOTONCHANNEL (442) example for KICK
-inline std::string errKickNotOnChannel(const std::string& serverName,
+// ERR_NOTONCHANNEL (442)
+inline std::string errNotOnChannel(const std::string& serverName,
 		const std::string& nick,
 		const std::string& channel)
 {

@@ -6,7 +6,7 @@
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 12:56:56 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/18 23:37:15 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/20 22:40:36 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,6 +37,7 @@ class User
 	void setUsername(std::string& username);
 
 	int getSocket();
+	std::string& getHost();
 
 	void registerUser();
 	bool isRegistered();
@@ -45,8 +46,9 @@ class User
 	int sockfd_;
 	std::string recv_buf_;
 	// std::string send_buf_;
-	bool registered_{false};
+	bool registered_;
 	std::string password_;
 	std::string username_;
 	std::string nick_;
+	std::string host_;
 };
