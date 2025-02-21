@@ -309,6 +309,7 @@ void Server::user(Message& msg, User& usr)
 		throw std::invalid_argument{"Invalid number of arguments"};
 	}
 	usr.setUsername(msg.getArgs().front());
+	usr.setRealName(msg.getArgs().back());
 	if (!usr.isRegistered())
 	{
 		attemptRegistration(usr);

@@ -16,7 +16,6 @@
 #include <netinet/in.h>
 #include <unistd.h>
 
-#include <algorithm>
 #include <stdexcept>
 #include <string>
 
@@ -41,33 +40,6 @@ User::User(int sockfd) : sockfd_{sockfd}, registered_{false}
 	}
 }
 
-User::User(const User& o)
-	: sockfd_{o.sockfd_},
-	  recv_buf_{o.recv_buf_},
-	  registered_{o.registered_},
-	  password_{o.password_},
-	  username_{o.username_},
-	  nick_{o.nick_},
-	  host_{o.host_}
-{
-}
-
-User& User::operator=(const User& o)
-{
-	if (this == &o)
-	{
-		return (*this);
-	}
-	this->sockfd_ = o.sockfd_;
-	this->username_ = o.username_;
-	this->nick_ = o.nick_;
-	this->recv_buf_ = o.recv_buf_;
-	this->password_ = o.password_;
-	this->registered_ = o.registered_;
-	this->host_ = o.host_;
-	return (*this);
-}
-
 /**
  * @brief Receives data from the user's socket. Throws an error on failure.
  *
@@ -87,7 +59,7 @@ int User::receiveData()
 	}
 	if (n_bytes < 0)
 	{
-		throw std::runtime_error{"receiveData"};
+		throw std::runtime_error{"Failed to receive data from user " + nick_};
 	}
 	buf = buf.substr(0, n_bytes);  // Truncate buf to size of data
 	Logger::log(Logger::DEBUG, "Received data from user " +
@@ -131,7 +103,7 @@ int User::sendData(const std::string& buf)
 	int n_bytes = write(this->sockfd_, buf.c_str(), buf.length());
 	if (n_bytes < 0)
 	{
-		throw std::runtime_error{"Error: sendData"};
+		throw std::runtime_error{"Failed to send data to user " + nick_};
 	}
 	Logger::log(Logger::DEBUG, "Sent data to user " + nick_ + ": " + buf);
 	return (n_bytes);
@@ -153,7 +125,7 @@ bool User::isRegistered()
 	return (registered_);
 }
 
-std::string& User::getPassword()
+const std::string& User::getPassword() const
 {
 	return (password_);
 }
@@ -163,7 +135,7 @@ void User::setNick(std::string& nick)
 	nick_ = nick;
 }
 
-std::string& User::getNick()
+const std::string& User::getNick() const
 {
 	return (nick_);
 }
@@ -173,17 +145,27 @@ void User::setUsername(std::string& username)
 	username_ = username;
 }
 
-std::string& User::getUsername()
+const std::string& User::getUsername() const
 {
 	return (username_);
 }
 
-int User::getSocket()
+int User::getSocket() const
 {
 	return (sockfd_);
 }
 
-std::string& User::getHost()
+const std::string& User::getHost() const
 {
 	return (host_);
+}
+
+const std::string& User::getRealname() const
+{
+	return (realname_);
+}
+
+void User::setRealName(std::string& realname)
+{
+	realname_ = realname;
 }
