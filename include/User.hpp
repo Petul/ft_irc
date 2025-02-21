@@ -19,25 +19,25 @@ class User
    public:
 	User();
 	User(int sockfd);
-	User(const User&);
-	User& operator=(const User&);
-	// ~User();
 
 	int receiveData();
 	int sendData(const std::string& buf);
 	int getNextMessage(std::string& buf);
 
-	std::string& getPassword();
+	const std::string& getPassword() const;
 	void setPassword(std::string& pass);
 
-	std::string& getNick();
+	const std::string& getNick() const;
 	void setNick(std::string& nick);
 
-	std::string& getUsername();
+	const std::string& getUsername() const;
 	void setUsername(std::string& username);
 
-	int getSocket();
-	std::string& getHost();
+	const std::string& getRealname() const;
+	void setRealName(std::string& realname);
+
+	int getSocket() const;
+	const std::string& getHost() const;
 
 	void registerUser();
 	bool isRegistered();
@@ -49,6 +49,7 @@ class User
 	bool registered_;
 	std::string password_;
 	std::string username_;
+	std::string realname_;
 	std::string nick_;
 	std::string host_;
 };

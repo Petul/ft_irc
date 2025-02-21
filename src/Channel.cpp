@@ -168,3 +168,53 @@ void Channel::part(User &usr, const std::string &partMessage)
 	}
 	Logger::log(Logger::INFO, "User " + usr.getNick() + " parted channel " + _name);
 }
+
+void Channel::showOrSetTopic(User &usr, std::string newTopic, int unsetTopicFlag) {
+	if (!isUserInChannel(usr))
+	{
+		usr.sendData(errUserNotInChannel(SERVER_NAME, usr.getNick(), _name));
+		return;
+	}
+	if (_restrictionsOnTopic == true)
+	{
+		if (!isUserAnOperatorInChannel(usr))
+		{
+			usr.sendData(errChanPrivsNeeded(SERVER_NAME, usr.getNick(), _name));
+			return;
+		}
+	}
+	if (unsetTopicFlag)
+	{
+		usr.sendData(rplTopic(SERVER_NAME, usr.getNick(), _name, _topic));
+		Logger::log(Logger::INFO, "User " + usr.getNick() + " removed topic from channel " + _name);
+		_topic.clear();
+	}
+	else
+	{
+		if (newTopic.empty())
+		{
+			if (_topic.empty())
+			{
+				usr.sendData(rplNoTopic(SERVER_NAME, usr.getNick(), _name));
+				Logger::log(Logger::INFO, "User " + usr.getNick() +
+							" requested topic from channel " + _name + 
+							" but topic is not set");
+			}
+			else
+			{
+				usr.sendData(rplTopic(SERVER_NAME, usr.getNick(), _name, _topic));
+				Logger::log(Logger::INFO, "User " + usr.getNick() +
+							" topic of channel " + _name + " is " + _topic);
+			}
+		}
+		else
+		{
+			_topic = newTopic;
+			usr.sendData(rplTopic(SERVER_NAME, usr.getNick(), _name, _topic));
+			displayMessage(usr, rplTopic(SERVER_NAME, usr.getNick(), _name, _topic));
+			Logger::log(Logger::INFO, "User " + usr.getNick() +
+							" changet topic in channel " + _name +
+							", new topic is " + _topic);
+		}
+	}
+}
