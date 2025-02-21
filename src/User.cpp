@@ -87,6 +87,12 @@ int User::getNextMessage(std::string& buf)
 	{
 		return (0);
 	}
+	if (pos > 509)  // Message too long. 512 minus \r\n
+	{
+		sendData("ERROR message too long\r\n");
+		recv_buf_.erase(recv_buf_.begin(), recv_buf_.begin() + pos + 2);
+		return (0);
+	}
 	buf = recv_buf_.substr(0, pos);
 	recv_buf_.erase(recv_buf_.begin(), recv_buf_.begin() + pos + 2);
 	return (1);
