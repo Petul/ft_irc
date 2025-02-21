@@ -2,6 +2,7 @@
 
 #include <unistd.h>
 
+#include <cstddef>
 #include <iostream>
 #include <istream>
 #include <set>
@@ -16,50 +17,69 @@
 
 class Channel
 {
-   private:
-	std::string _name;
-	std::set<User *> _users;
-	std::set<User *> _operators;
-	std::set<User *> _invitedUsers;
-	bool _isInviteOnly;
-	bool _restrictionsOnTopic;
-	std::string _topic;
-	std::string _password;
-	size_t _userLimit;
+	private:
+		std::string         _name;
+		std::set<User *>    _users;
+		std::set<User *>    _operators;
+		std::set<User *>    _invitedUsers;
+		bool                _isInviteOnly;
+		bool                _restrictionsOnTopic;
+		std::string         _topic;
+		std::string         _password;
+		size_t              _userLimit;
 
-   public:
-	Channel(std::string name, User &usr);
-	~Channel();
+	public:
+		Channel(std::string name, User &usr);
+		~Channel();
 
-	std::string getName() const;
-	bool getInviteMode() const;
-	std::string getTopic() const;
-	unsigned int getUserCount() const;
+		std::string         getName() const;
+		bool                getInviteMode() const;
+		std::string         getTopic() const;
+		unsigned int        getUserCount() const;
 
-	void addUser(User &usr, std::string channelPassword);
-	// void inviteUser(User &invitingUsr, User &invitedUsr);
-	void inviteUser(User &invitingUsr, std::unordered_map<int, User> &users_, std::string invitedUsrNickname);
-	void displayMessage(User &sender, std::string msg);
-	bool isUserInChannel(User &usr);
-	bool isUserAnOperatorInChannel(User &usr);
-	bool checkIfUserInvited(User &user);
+		void setInviteOnly();
+		void unsetInviteOnly();
 
-	void setInviteOnly();
-	void unsetInviteOnly();
-	void setUserLimit(int limit);
-	void unsetUserLimit();
-	void setPassword(std::string password);
-	void unsetPasword();
-	void setRestrictionsOnTopic();
-	void unsetRestrictionsOnTopic();
-	void showOrSetTopic(User &usr, std::string topic, int unsetTopicFlag);
+		void setUserLimit(int limit);
+		void unsetUserLimit();
 
-	void addOperator(User &user);
-	void removeUser(User& user);
-	void removeOperator(User &user);
-	void kickUser(User &user, std::string targetUsername, std::string reason);
-	void part(User &usr, const std::string &partMessage);
+		void setPassword(std::string password);
+		void unsetPasword();
+
+		void setRestrictionsOnTopic();
+		void unsetRestrictionsOnTopic();
+
+		bool isUserAnOperatorInChannel(User& usr);
+		bool isUserInChannel(User& usr);
+		bool isUserInvited(User& usr);
+
+		void addOperator(User& usr);
+		void removeOperator(User& usr);
+		void addUser(User& usr);
+		void removeUser(User& usr);
+
+		void broadcastToChannel(User& usr,
+				const std::string &message);
+
+		void displayChannelMessage(User& sender,
+				std::string msg);
+
+		void joinUser(const std::string& serverName,
+				User& usr,
+				const std::string& attemptedPassword);
+
+		void partUser(User& usr,
+				const std::string& partMessage);
+
+		void kickUser(User& usr,
+				std::string targetUsername,
+				std::string reason);
+
+		void inviteUser(User& invitingUsr,
+				std::unordered_map<int, User>& users_,
+				std::string invitedUsrNickname);
+
+		void showOrSetTopic(User& usr,
+				std::string topic,
+				int unsetTopicFlag);
 };
-
-// void joinChannel(std::string msg, int clientFd, Server *_server);
-// void handleMessage(std::string msg, int clientFd, Server *_server);

@@ -6,7 +6,7 @@
 /*   By: jmakkone <jmakkone@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/18 17:55:46 by jmakkone          #+#    #+#             */
-/*   Updated: 2025/02/21 01:43:46 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/21 19:43:49 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -188,6 +188,26 @@ inline std::string rplJoin(const std::string& nick,
 		const std::string& channel)
 {
 	return ":" + nick + "!" + nick + "@" + ip + " JOIN " + channel + "\r\n";
+}
+
+// RPL_NAMEREPLY 353 <nick> <symbol> <channel> :<names>
+inline std::string rplNamReply(const std::string& serverName,
+		const std::string& nick,
+		const std::string& symbol,
+		const std::string& channel,
+		const std::string& namelist)
+{
+	return ":" + serverName + " 353 " + nick + " " + symbol + " " +
+		channel + " :" + namelist + "\r\n";
+}
+
+// RPL_ENDOFNAMES (366) - after enumerating all users
+inline std::string rplEndOfNames(const std::string& serverName,
+		const std::string& nick,
+		const std::string& channel)
+{
+	return ":" + serverName + " 366 " + nick + " " + channel +
+		" :End of /NAMES list\r\n";
 }
 
 // "Cannot join channel (+b)"
