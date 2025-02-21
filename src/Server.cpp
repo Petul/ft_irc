@@ -59,6 +59,7 @@ void Server::handleSignal(int signum)
 	static_cast<void>(signum);
 	Logger::log(Logger::INFO, "Server shutting down. Goodbye..");
 	if (_server) close(_server->_serverSocket);
+	_server->~Server();
 	exit(0);
 }
 const std::map<COMMANDTYPE, Server::executeFunc> Server::execute_map_ = {
