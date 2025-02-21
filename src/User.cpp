@@ -76,7 +76,7 @@ User& User::operator=(const User& o)
  */
 int User::receiveData()
 {
-	std::string buf(1024, 0);
+	std::string buf(512, 0);
 	int n_bytes =
 		recv(this->sockfd_, const_cast<char*>(buf.data()), buf.size(), 0);
 	// Client closed the connection
@@ -92,12 +92,6 @@ int User::receiveData()
 	buf = buf.substr(0, n_bytes);  // Truncate buf to size of data
 	Logger::log(Logger::DEBUG, "Received data from user " +
 								   std::to_string(sockfd_) + ": " + buf);
-	// Check line break format
-	if (buf.compare(n_bytes - 2, 2, "\r\n") != 0)
-	{
-		throw std::invalid_argument{
-			"Incorrect line break format, CRLF required"};
-	}
 	recv_buf_ += buf;
 	return (1);
 }
@@ -117,6 +111,10 @@ int User::getNextMessage(std::string& buf)
 		return (0);
 	}
 	size_t pos = recv_buf_.find("\r\n", 0);
+	if (pos == std::string::npos)
+	{
+		return (0);
+	}
 	buf = recv_buf_.substr(0, pos);
 	recv_buf_.erase(recv_buf_.begin(), recv_buf_.begin() + pos + 2);
 	return (1);
