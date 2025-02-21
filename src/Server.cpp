@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/21 01:19:55 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/21 15:58:46 by mpellegr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -731,6 +731,22 @@ void Server::topic(Message& msg, User& usr)
 	/*	ERR_NEEDMOREPARAMS				ERR_NOTONCHANNEL*/
 	/*	RPL_NOTOPIC						RPL_TOPIC*/
 	/*	ERR_CHANOPRIVSNEEDED			ERR_NOCHANMODES*/
+	std::vector<std::string> args = msg.getArgs();
+	if (args.empty())
+	{
+		usr.sendData(errNeedMoreParams(SERVER_NAME, usr.getNick(), "TOPIC"));
+		return;
+	}
+	std::string channelName = args[0];
+	std::string newTopic = (args.size() > 1) ? args[1] : "";
+	try
+	{
+		_channels.at(args[0]).showOrSetTopic(usr, newTopic, newTopic.empty());
+	}
+	catch(const std::exception& e)
+	{
+		usr.sendData(errNoSuchChannel(SERVER_NAME, usr.getNick(), channelName));
+	}
 }
 
 void Server::invite(Message& msg, User& usr)

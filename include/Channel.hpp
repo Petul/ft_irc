@@ -52,6 +52,7 @@ class Channel
 	void unsetPasword();
 	void setRestrictionsOnTopic();
 	void unsetRestrictionsOnTopic();
+	void showOrSetTopic(User &usr, std::string topic, int unsetTopicFlag);
 
 	void addOperator(User &user);
 	void removeUser(User& user);
