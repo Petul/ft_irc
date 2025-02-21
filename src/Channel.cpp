@@ -160,10 +160,11 @@ void Channel::part(User &usr, const std::string &partMessage)
 	std::string senderFullID = usr.getNick() + "!~" + usr.getUsername() + "@" + usr.getHost();
 	std::string partMsg = ":" + senderFullID + " PART " + _name + " :" + partMessage + "\r\n";
 	
+	removeUser(usr);
+	usr.sendData(rplPart(usr.getNick(), _name));
 	for (auto user : _users)
 	{
 		user->sendData(partMsg);
 	}
-	removeUser(usr);
 	Logger::log(Logger::INFO, "User " + usr.getNick() + " parted channel " + _name);
 }

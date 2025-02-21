@@ -6,7 +6,7 @@
 /*   By: jmakkone <jmakkone@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/18 17:55:46 by jmakkone          #+#    #+#             */
-/*   Updated: 2025/02/21 00:49:44 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/21 01:43:46 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,7 +45,7 @@ inline std::string rplWelcome(const std::string& serverName,
 {
 	// "Welcome to the Internet Relay Network <nick>!<user>@<host>"
 	return ":" + serverName + " 001 " + nick + " :Welcome to the Internet Relay Network " +
-		nick + "!" + user + "@" + host + "\r\n";
+		nick + "!~" + user + "@" + host + "\r\n";
 }
 
 // 002 RPL_YOURHOST
