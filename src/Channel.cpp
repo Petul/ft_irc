@@ -181,8 +181,7 @@ void Channel::joinUser(const std::string& serverName,
 
 	addUser(usr);
 
-	std::string joinMsg = ":" + usr.getNick() + "!~" + usr.getUsername() + "@" +
-		usr.getHost() + " JOIN " + _name + "\r\n";
+	std::string joinMsg = rplJoin(usr.getNick(), usr.getUsername(), usr.getHost(), _name);
 
 	broadcastToChannel(usr, joinMsg);
 	usr.sendData(joinMsg);
@@ -214,8 +213,8 @@ void Channel::joinUser(const std::string& serverName,
 
 void Channel::partUser(User& usr, const std::string& partMessage)
 {
-	std::string senderFullID = usr.getNick() + "!~" + usr.getUsername() + "@" + usr.getHost();
-	std::string partMsg = ":" + senderFullID + " PART " + _name + " :" + partMessage + "\r\n";
+	std::string partMsg = rplPart(usr.getNick(), usr.getUsername(),
+							usr.getHost(), _name, partMessage);
 	removeUser(usr);
 	for (auto user : _users)
 	{	

@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/21 22:20:49 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/21 22:54:36 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -487,7 +487,9 @@ void Server::join(Message& msg, User& usr)
 		{
 			Channel newChannel(channelName, usr);
 			if (!channelPassword.empty())
+			{
 				newChannel.setPassword(channelPassword);
+			}
 
 			_channels.insert(std::make_pair(channelName, newChannel));
 			it = _channels.find(channelName);
@@ -548,24 +550,19 @@ void Server::part(Message& msg, User& usr)
 
 void Server::quit(Message& msg, User& usr)
 {
-	std::string quitMessage =
-		(msg.getArgs().empty() ? "Quit" : msg.getArgs()[0]);
-
-	std::string senderFullID =
-		usr.getNick() + "!" + usr.getUsername() + "@" + usr.getHost();
-	std::string fullQuitMsg =
-		":" + senderFullID + " QUIT :" + quitMessage + "\r\n";
+	std::string quitMsg = rplQuit(usr.getNick(), usr.getUsername(),
+			usr.getHost(), msg.getArgs().empty() ? "Quit" : msg.getArgs()[0]);
 
 	for (auto& chanPair : _channels)
 	{
 		Channel& chan = chanPair.second;
 		if (chan.isUserInChannel(usr))
 		{
-			chan.displayChannelMessage(usr, fullQuitMsg);
+			chan.displayChannelMessage(usr, quitMsg);
 			chan.removeUser(usr);
 		}
 	}
-	usr.sendData(fullQuitMsg);
+	usr.sendData(quitMsg);
 
 	int fd = usr.getSocket();
 	// Works, but can we make it better?

@@ -6,7 +6,7 @@
 /*   By: jmakkone <jmakkone@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/18 17:55:46 by jmakkone          #+#    #+#             */
-/*   Updated: 2025/02/21 19:43:49 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/21 22:50:19 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -169,9 +169,11 @@ inline std::string errPasswdMismatch(const std::string& serverName,
 // QUIT Command Broadcast
 
 inline std::string rplQuit(const std::string& nick,
+		const std::string& username,
+		const std::string& hostname,
 		const std::string& message)
 {
-	return ":" + nick + " QUIT :" + message + "\r\n";
+	return ":" + nick + "!~" + username + "@" + hostname + " QUIT :" + message + "\r\n";
 }
 
 
@@ -184,10 +186,11 @@ inline std::string rplQuit(const std::string& nick,
 
 // Broadcast JOIN message
 inline std::string rplJoin(const std::string& nick,
-		const std::string& ip,
+		const std::string& username,
+		const std::string& hostname,
 		const std::string& channel)
 {
-	return ":" + nick + "!" + nick + "@" + ip + " JOIN " + channel + "\r\n";
+	return ":" + nick + "!~" + username + "@" + hostname + " JOIN " + channel + "\r\n";
 }
 
 // RPL_NAMEREPLY 353 <nick> <symbol> <channel> :<names>
@@ -297,10 +300,13 @@ inline std::string errUnavailableResource(const std::string& serverName,
 // PART Command Replies
 
 // Broadcast PART message
-inline std::string rplPart(const std::string& nick,
-		const std::string& channel)
+inline std::string rplPart(const std::string &nick,
+                           const std::string &username,
+                           const std::string &hostname,
+                           const std::string &channelName,
+                           const std::string &partMessage)
 {
-	return ":" + nick + " PART " + channel + "\r\n";
+    return ":" + nick + "!~" + username + "@" + hostname + " PART " + channelName + " :" + partMessage + "\r\n";
 }
 
 
