@@ -81,7 +81,9 @@ void Channel::removeOperator(User &user) { _operators.erase(&user); }
 
 void Channel::removeUser(User& user)
 {
-	_users.erase(&user);
+	auto it = _users.find(&user);
+	if (it != _users.end())
+		_users.erase(it);
 	// Do we remove users from these as well?
 	//_operators.erase(user);
 	//_invitedUsers.erase(user);
@@ -159,15 +161,12 @@ void Channel::part(User &usr, const std::string &partMessage)
 {
 	std::string senderFullID = usr.getNick() + "!~" + usr.getUsername() + "@" + usr.getHost();
 	std::string partMsg = ":" + senderFullID + " PART " + _name + " :" + partMessage + "\r\n";
-	
-	std::string newstring = ":" + usr.getNick() + "!" + usr.getUsername() + usr.getHost() + " PART " + _name + " " + (partMessage.empty() ? "." : partMessage ) + "\r\n";
 	removeUser(usr);
-	//usr.sendData(":" + senderFullID + " PART " + _name + ": " + partMessage + "\r\n");
-	usr.sendData(newstring);
 	for (auto user : _users)
-	{
-		user->sendData(newstring);
+	{	
+		user->sendData(partMsg);
 	}
+	usr.sendData(partMsg);
 	Logger::log(Logger::INFO, "User " + usr.getNick() + " parted channel " + _name);
 }
 

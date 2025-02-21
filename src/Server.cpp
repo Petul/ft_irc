@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/21 17:55:03 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/21 18:50:17 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -524,7 +524,6 @@ void Server::part(Message& msg, User& usr)
 	std::string channelsList = args[0];
 	std::string partMessage = (args.size() > 1 ? args[1] : usr.getNick());
 
-	std::cout << "Check default part message: " << partMessage << '\n';
 	std::istringstream iss(channelsList);
 	std::string channelName;
 	while (std::getline(iss, channelName, ','))
