@@ -82,4 +82,8 @@ class Channel
 		void showOrSetTopic(User& usr,
 				std::string topic,
 				int unsetTopicFlag);
+
+		void applyChannelMode(User& setter,
+				const std::string& modes,
+				const std::string& param);
 };

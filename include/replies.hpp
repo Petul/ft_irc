@@ -6,7 +6,7 @@
 /*   By: jmakkone <jmakkone@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/18 17:55:46 by jmakkone          #+#    #+#             */
-/*   Updated: 2025/02/21 22:50:19 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/22 00:55:11 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -318,12 +318,14 @@ inline std::string rplPart(const std::string &nick,
 // MODE Command Replies/Errors
 
 // Broadcast MODE change message
-inline std::string rplMode(const std::string& source,
-		const std::string& target,
+inline std::string rplChannelMode(const std::string& nick,
+		const std::string& username,
+		const std::string& hostname,
+		const std::string& channelName,
 		const std::string& modes,
 		const std::string& params)
 {
-	return ":" + source + " MODE " + target + " " + modes + " " + params + "\r\n";
+	return ":" + nick + "!~" + username + "@" + hostname + " MODE " + channelName + " " + modes + " " + params + "\r\n";
 }
 
 // ERR_KEYSET (467)
@@ -363,12 +365,20 @@ inline std::string errUserNotInChannel(const std::string& serverName,
 
 // ERR_UNKNOWNMODE (472)
 // "Unknown mode"
-inline std::string errUnknownMode(const std::string& serverName,
+inline std::string errUnknownMode(const std::string& servername,
                                   const std::string& nick,
                                   const std::string& channel,
                                   const std::string& mode)
 {
-    return ":" + serverName + " 472 " + nick + " " + channel + " :Unknown mode " + mode + "\r\n";
+    return ":" + servername + " 472 " + nick + " " + channel + " :unknown mode " + mode + "\r\n";
+}
+
+// ERR_UMODEUNKNOWNFLAG (501)
+// ":Unknown MODE flag"
+inline std::string errUnknownModeFlag(const std::string& servername,
+                                  const std::string& nick)
+{
+    return ":" + servername + " 501 " + nick + " :unknown MODE flag" + "\r\n";
 }
 
 // RPL_CHANNELMODEIS (324)
