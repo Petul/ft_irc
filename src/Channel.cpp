@@ -33,6 +33,11 @@ unsigned int Channel::getUserCount() const
 	return _users.size();
 }
 
+std::set<User *> Channel::getUsers() const
+{
+	return _users;
+}
+
 void Channel::setInviteOnly()
 {
 	_isInviteOnly = true;
