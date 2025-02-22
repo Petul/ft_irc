@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/13 16:26:34 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/21 23:21:44 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/22 21:00:04 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -75,6 +75,7 @@ class Server
 	void part(Message& msg, User& usr);
 	void invite(Message& msg, User& usr);
 	void who(Message& msg, User& usr);
+	void whois(Message& msg, User& usr);
 	void quit(Message& msg, User& usr);
 	void mode(Message& msg, User& usr);
 	void kick(Message& msg, User& usr);

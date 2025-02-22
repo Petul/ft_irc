@@ -6,7 +6,7 @@
 /*   By: jmakkone <jmakkone@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/18 17:55:46 by jmakkone          #+#    #+#             */
-/*   Updated: 2025/02/22 00:55:11 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/22 21:32:58 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -647,32 +647,59 @@ inline std::string rplNotice(const std::string& source,
 
 
 
-// WHO Command Replies
+// WHO/WHOIS Command Replies
 
-// RPL_WHOREPLY (352)
-inline std::string rplWhoReply(const std::string& serverName,
-		const std::string& nick,
-		const std::string& channel,
-		const std::string& user,
-		const std::string& host,
-		const std::string& server,
-		const std::string& realName)
+inline std::string rplWhoReply(const std::string &serverName,
+		const std::string &requestorNick,
+		const std::string &mask,
+		const std::string &user,
+		const std::string &host,
+		const std::string &server,
+		const std::string &nick,
+		char status,
+		const std::string &realName)
 {
-	// The last parameter "H" means "here" (user is not away)
-	return ":" + serverName + " 352 " + nick + " " + channel + " " + user + " " +
-		host + " " + server + " " + realName + " H :0 " + realName + "\r\n";
+	return ":" + serverName + " 352 " + requestorNick + " " + mask + " " +
+		user + " " + host + " " + server + " " + nick + " " +
+		status + " :0 " + realName + "\r\n";
 }
 
-// RPL_ENDOFWHO (315)
-inline std::string rplEndOfWho(const std::string& serverName,
-		const std::string& nick,
-		const std::string& channel)
+// 315 RPL_ENDOFWHO
+inline std::string rplEndOfWho(const std::string &serverName,
+		const std::string &requestorNick,
+		const std::string &mask)
 {
-	return ":" + serverName + " 315 " + nick + " " + channel + " :End of /WHO list\r\n";
+	return ":" + serverName + " 315 " + requestorNick + " " + mask +
+		" :End of /WHO list\r\n";
+}
+
+// WHOIS reply codes
+inline std::string rplWhoisUser(const std::string &serverName,
+		const std::string &requestorNick,
+		const std::string &targetNick,
+		const std::string &user,
+		const std::string &host,
+		const std::string &realName)
+{
+	return ":" + serverName + " 311 " + requestorNick + " " +
+		targetNick + " " + user + " " + host + " * :" + realName + "\r\n";
 }
 
 
+// If the user is an IRC operator:
+inline std::string rplWhoisOperator(const std::string &serverName,
+		const std::string &requestorNick,
+		const std::string &targetNick)
+{
+	return ":" + serverName + " 313 " + requestorNick + " " + targetNick +
+		" :is an IRC operator\r\n";
+}
 
-
-
-
+// 318 RPL_ENDOFWHOIS
+inline std::string rplEndOfWhois(const std::string &serverName,
+		const std::string &requestorNick,
+		const std::string &targetNick)
+{
+	return ":" + serverName + " 318 " + requestorNick + " " + targetNick +
+		" :End of /WHOIS list\r\n";
+}

@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/22 00:45:52 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/22 21:56:14 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -72,6 +72,7 @@ const std::map<COMMANDTYPE, Server::executeFunc> Server::execute_map_ = {
 	{PART, &Server::part},
 	{INVITE, &Server::invite},
 	{WHO, &Server::who},
+	{WHOIS, &Server::whois},
 	{QUIT, &Server::quit},
 	{MODE, &Server::mode},
 	{KICK, &Server::kick},
@@ -352,8 +353,24 @@ void Server::oper(Message& msg, User& usr)
 {
 	/*Numeric Replies:*/
 	/**/
-	/*	ERR_NEEDMOREPARAMS				RPL_YOUREOPER*/
-	/*	ERR_NOOPERHOST					ERR_PASSWDMISMATCH*/
+	/*✓	ERR_NEEDMOREPARAMS			  ✓	RPL_YOUREOPER*/
+	/*	ERR_NOOPERHOST				  ✓ ERR_PASSWDMISMATCH*/
+	if (msg.getArgs().size() < 2)
+	{
+		usr.sendData(errNeedMoreParams(SERVER_NAME, usr.getNick(), "OPER"));
+		return;
+	}
+	std::string operName = msg.getArgs()[0];
+	std::string operPass = msg.getArgs()[1];
+
+	if (operName != "root" || operPass != "password")
+	{
+		usr.sendData(errPasswdMismatch(SERVER_NAME, usr.getNick()));
+		return;
+	}
+
+	usr.setIsOperator();
+	usr.sendData(rplYoureOper(SERVER_NAME, usr.getNick()));
 }
 
 void Server::privmsg(Message& msg, User& usr)
@@ -870,7 +887,112 @@ void Server::notice(Message& msg, User& usr)
 
 void Server::who(Message& msg, User& usr)
 {
-	// not sure do we implent this
+	std::vector<std::string> args = msg.getArgs();
+	std::string mask;
+
+	if (!args.empty())
+		mask = args[0];
+
+	if (mask.empty() || mask == "*")
+	{
+		for (auto user : users_)
+		{
+			usr.sendData(rplWhoReply(SERVER_NAME,
+						usr.getNick(),
+						"*",
+						user.second.getUsername(),
+						user.second.getHost(),
+						SERVER_NAME,
+						user.second.getNick(),
+						'H',
+						user.second.getRealname()));
+		}
+		usr.sendData(rplEndOfWho(SERVER_NAME, usr.getNick(), "*"));
+		return;
+	}
+
+	if (mask[0] == '#')
+	{
+		std::unordered_map<std::string, Channel>::iterator chanIt = _channels.find(mask);
+		if (chanIt == _channels.end())
+		{
+			usr.sendData(rplEndOfWho(SERVER_NAME, usr.getNick(), mask));
+			return;
+		}
+		Channel &channel = chanIt->second;
+		for (auto chanUser : channel.getUsers())
+		{
+			usr.sendData(rplWhoReply(SERVER_NAME,
+						usr.getNick(),
+						mask,
+						chanUser->getUsername(),
+						chanUser->getHost(),
+						SERVER_NAME,
+						chanUser->getNick(),
+						'H', 
+						chanUser->getRealname()));
+		}
+		usr.sendData(rplEndOfWho(SERVER_NAME, usr.getNick(), mask));
+		return;
+	}
+
+	for (auto user : users_)
+	{
+		if (user.second.getNick() == mask)
+		{
+			usr.sendData(rplWhoReply(SERVER_NAME,
+						usr.getNick(),
+						mask,
+						user.second.getUsername(),
+						user.second.getHost(),
+						SERVER_NAME,
+						user.second.getNick(),
+						'H',
+						user.second.getRealname()));
+			break;
+		}
+	}
+	// I think we need to send this even if user was not found?
+	usr.sendData(rplEndOfWho(SERVER_NAME, usr.getNick(), mask));
+}
+
+void Server::whois(Message& msg, User& usr)
+{
+	std::vector<std::string> args = msg.getArgs();
+	if (args.empty())
+	{
+		usr.sendData(errNeedMoreParams(SERVER_NAME, usr.getNick(), "WHOIS"));
+		return;
+	}
+
+	std::string targetNick = args[0];
+	bool found = false;
+
+	for (auto user : users_)
+	{
+		if (user.second.getNick() == targetNick)
+		{
+			found = true;
+			usr.sendData(rplWhoisUser(SERVER_NAME,
+						usr.getNick(),
+						user.second.getNick(),
+						user.second.getUsername(),
+						user.second.getHost(),
+						user.second.getRealname()));
+
+			if (user.second.getIsOperator())
+			{
+				usr.sendData(rplWhoisOperator(SERVER_NAME, usr.getNick(), user.second.getNick()));
+			}
+			usr.sendData(rplEndOfWhois(SERVER_NAME, usr.getNick(), user.second.getNick()));
+			break;
+		}
+	}
+
+	if (!found)
+	{
+		usr.sendData(errNoSuchNick(SERVER_NAME, usr.getNick(), targetNick));
+	}
 }
 
 void Server::ping(Message& msg, User& usr)

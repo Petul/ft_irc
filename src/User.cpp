@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 13:32:51 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/22 01:04:51 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/22 21:18:04 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,7 +27,7 @@ User::User() : sockfd_{-1}
 {
 }
 
-User::User(int sockfd) : sockfd_{sockfd}, registered_{false}
+User::User(int sockfd) : sockfd_{sockfd}, registered_{false}, isOperator_{false}
 {
 	struct sockaddr_in addr;
 	socklen_t addr_len = sizeof(addr);
@@ -175,6 +175,16 @@ const std::string& User::getRealname() const
 void User::setRealName(std::string& realname)
 {
 	realname_ = realname;
+}
+
+void User::setIsOperator()
+{
+	isOperator_ = true;
+}
+
+bool User::getIsOperator()
+{
+	return (isOperator_);
 }
 
 // Away is set by some other setter function, this heavily depend on OPER being implemented, so it's just a sketch with same format than applyChannelMode.

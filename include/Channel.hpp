@@ -36,6 +36,7 @@ class Channel
 		bool                getInviteMode() const;
 		std::string         getTopic() const;
 		unsigned int        getUserCount() const;
+		std::set<User *>	getUsers() const;
 
 		void setInviteOnly();
 		void unsetInviteOnly();
