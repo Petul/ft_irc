@@ -6,7 +6,7 @@
 /*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 12:56:56 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/22 00:58:09 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/22 21:15:53 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,6 +42,9 @@ class User
 	void registerUser();
 	bool isRegistered();
 
+	void setIsOperator();
+	bool getIsOperator();
+
 	void applyUserMode(User &setter,
 		const std::string &modes,
 		const std::string &param);
@@ -57,4 +60,5 @@ class User
 	std::string realname_;
 	std::string nick_;
 	std::string host_;
+	bool isOperator_;
 };

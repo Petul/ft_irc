@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/22 00:45:52 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/22 21:20:18 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -72,6 +72,7 @@ const std::map<COMMANDTYPE, Server::executeFunc> Server::execute_map_ = {
 	{PART, &Server::part},
 	{INVITE, &Server::invite},
 	{WHO, &Server::who},
+	{WHOIS, &Server::whois},
 	{QUIT, &Server::quit},
 	{MODE, &Server::mode},
 	{KICK, &Server::kick},
@@ -352,8 +353,24 @@ void Server::oper(Message& msg, User& usr)
 {
 	/*Numeric Replies:*/
 	/**/
-	/*	ERR_NEEDMOREPARAMS				RPL_YOUREOPER*/
-	/*	ERR_NOOPERHOST					ERR_PASSWDMISMATCH*/
+	/*✓	ERR_NEEDMOREPARAMS			  ✓	RPL_YOUREOPER*/
+	/*	ERR_NOOPERHOST				  ✓ ERR_PASSWDMISMATCH*/
+	if (msg.getArgs().size() < 2)
+	{
+		usr.sendData(errNeedMoreParams(SERVER_NAME, usr.getNick(), "OPER"));
+		return;
+	}
+	std::string operName = msg.getArgs()[0];
+	std::string operPass = msg.getArgs()[1];
+
+	if (operName != "root" || operPass != "password")
+	{
+		usr.sendData(errPasswdMismatch(SERVER_NAME, usr.getNick()));
+		return;
+	}
+
+	usr.setIsOperator();
+	usr.sendData(rplYoureOper(SERVER_NAME, usr.getNick()));
 }
 
 void Server::privmsg(Message& msg, User& usr)
@@ -869,6 +886,11 @@ void Server::notice(Message& msg, User& usr)
 }
 
 void Server::who(Message& msg, User& usr)
+{
+	// not sure do we implent this
+}
+
+void Server::whois(Message& msg, User& usr)
 {
 	// not sure do we implent this
 }
