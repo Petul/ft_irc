@@ -19,6 +19,21 @@ Channel::~Channel()
 {
 }
 
+void Channel::shutDownChannel()
+{
+	std::string msg{"Channel shutting down"};
+	removeAllUsers(msg);
+}
+
+void Channel::removeAllUsers(std::string& msg)
+{
+	std::set<User*> users_cpy{_users};
+	for (auto usr : users_cpy)
+	{
+		partUser(*usr, msg);
+	}
+}
+
 std::string Channel::getName() const
 {
 	return _name;

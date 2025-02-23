@@ -33,6 +33,7 @@ class Server
 	Server(std::string server_pass, int server_port);
 	Server(const Server&);
 	Server& operator=(const Server&);
+	~Server();
 
 	void startServer();
 	static void handleSignal(int signum);

@@ -54,9 +54,18 @@ Server& Server::operator=(const Server& o)
 
 Server* Server::_server = nullptr;
 
+Server::~Server()
+{
+	for (auto& ch : _channels)
+	{
+		ch.second.shutDownChannel();
+	}
+}
+
 void Server::handleSignal(int signum)
 {
 	static_cast<void>(signum);
+
 	Logger::log(Logger::INFO, "Server shutting down. Goodbye..");
 	if (_server) close(_server->_serverSocket);
 	_server->~Server();
