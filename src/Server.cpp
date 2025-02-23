@@ -176,8 +176,8 @@ void Server::receiveDataFromClient(int i)
 		std::string msg =
 			"Client " + std::to_string(poll_fds_[i].fd) + " disconnected";
 		Logger::log(Logger::INFO, msg);
-		std::string quitMsg =
-			rplQuit(usr->getNick(), usr->getUsername(), usr->getHost(), "Quit");
+		std::string quitMsg = rplQuit(usr->getNick(), usr->getUsername(),
+									  usr->getHost(), "Disconnected");
 		handleQuitServer(quitMsg, *usr);
 		return;
 	}
