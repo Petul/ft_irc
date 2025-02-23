@@ -84,6 +84,7 @@ class Server
 	void ping(Message& msg, User& usr);
 	void pong(Message& msg, User& usr);
 
-	void handleChannelMode(Message &msg, User &usr);
-	void handleUserMode(Message &msg, User &usr);
+	void handleChannelMode(Message& msg, User& usr);
+	void handleUserMode(Message& msg, User& usr);
+	void handleQuitServer(std::string& quitMsg, User& usr);
 };

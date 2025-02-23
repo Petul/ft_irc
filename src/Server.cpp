@@ -63,22 +63,14 @@ void Server::handleSignal(int signum)
 	exit(0);
 }
 const std::map<COMMANDTYPE, Server::executeFunc> Server::execute_map_ = {
-	{PASS, &Server::pass},
-	{NICK, &Server::nick},
-	{USER, &Server::user},
-	{OPER, &Server::oper},
-	{PRIVMSG, &Server::privmsg},
-	{JOIN, &Server::join},
-	{PART, &Server::part},
-	{INVITE, &Server::invite},
-	{WHO, &Server::who},
-	{WHOIS, &Server::whois},
-	{QUIT, &Server::quit},
-	{MODE, &Server::mode},
-	{KICK, &Server::kick},
-	{NOTICE, &Server::notice},
-	{TOPIC, &Server::topic},
-	{PING, &Server::ping},
+	{PASS, &Server::pass},       {NICK, &Server::nick},
+	{USER, &Server::user},       {OPER, &Server::oper},
+	{PRIVMSG, &Server::privmsg}, {JOIN, &Server::join},
+	{PART, &Server::part},       {INVITE, &Server::invite},
+	{WHO, &Server::who},         {WHOIS, &Server::whois},
+	{QUIT, &Server::quit},       {MODE, &Server::mode},
+	{KICK, &Server::kick},       {NOTICE, &Server::notice},
+	{TOPIC, &Server::topic},     {PING, &Server::ping},
 	{PONG, &Server::pong}
 	// Extend this list when we have more functions
 };
@@ -178,17 +170,18 @@ void Server::acceptNewClient()
 void Server::receiveDataFromClient(int i)
 {
 	std::string buf;
-	User* user = &(users_[poll_fds_[i].fd]);
-	if (!user->receiveData())
+	User* usr = &(users_[poll_fds_[i].fd]);
+	if (!usr->receiveData())
 	{
 		std::string msg =
 			"Client " + std::to_string(poll_fds_[i].fd) + " disconnected";
 		Logger::log(Logger::INFO, msg);
-		users_.erase(poll_fds_[i].fd);  // Erase user associated with client
-		poll_fds_[i].fd = -1;  // Mark pollfd as unused, to be deleted below
+		std::string quitMsg =
+			rplQuit(usr->getNick(), usr->getUsername(), usr->getHost(), "Quit");
+		handleQuitServer(quitMsg, *usr);
 		return;
 	}
-	while (user->getNextMessage(buf))
+	while (usr->getNextMessage(buf))
 	{
 		try
 		{
@@ -473,7 +466,8 @@ void Server::join(Message& msg, User& usr)
 	}
 
 	std::string channelArg = msg.getArgs()[0];
-	std::string passwordArg = (msg.getArgs().size() > 1) ? msg.getArgs()[1] : "";
+	std::string passwordArg =
+		(msg.getArgs().size() > 1) ? msg.getArgs()[1] : "";
 
 	std::istringstream channelStream(channelArg);
 	std::istringstream passwordStream(passwordArg);
@@ -495,11 +489,13 @@ void Server::join(Message& msg, User& usr)
 
 		if (channelName.empty() || channelName[0] != '#')
 		{
-			usr.sendData(errNoSuchChannel(SERVER_NAME, usr.getNick(), channelName));
+			usr.sendData(
+				errNoSuchChannel(SERVER_NAME, usr.getNick(), channelName));
 			continue;
 		}
 
-		std::unordered_map<std::string, Channel>::iterator it = _channels.find(channelName);
+		std::unordered_map<std::string, Channel>::iterator it =
+			_channels.find(channelName);
 		if (it == _channels.end())
 		{
 			Channel newChannel(channelName, usr);
@@ -512,8 +508,8 @@ void Server::join(Message& msg, User& usr)
 			it = _channels.find(channelName);
 
 			Logger::log(Logger::INFO,
-					"User " + std::to_string(usr.getSocket()) +
-					" created new channel " + channelName);
+						"User " + std::to_string(usr.getSocket()) +
+							" created new channel " + channelName);
 		}
 
 		Channel& channel = it->second;
@@ -548,13 +544,13 @@ void Server::part(Message& msg, User& usr)
 		if (it == _channels.end())
 		{
 			usr.sendData(
-					errNoSuchChannel(SERVER_NAME, usr.getNick(), channelName));
+				errNoSuchChannel(SERVER_NAME, usr.getNick(), channelName));
 			continue;
 		}
 		if (!it->second.isUserInChannel(usr))
 		{
 			usr.sendData(
-					errNotOnChannel(SERVER_NAME, usr.getNick(), channelName));
+				errNotOnChannel(SERVER_NAME, usr.getNick(), channelName));
 			continue;
 		}
 		it->second.partUser(usr, partMessage);
@@ -567,15 +563,20 @@ void Server::part(Message& msg, User& usr)
 
 void Server::quit(Message& msg, User& usr)
 {
-	std::string quitMsg = rplQuit(usr.getNick(), usr.getUsername(),
-			usr.getHost(), msg.getArgs().empty() ? "Quit" : msg.getArgs()[0]);
+	std::string quitMsg =
+		rplQuit(usr.getNick(), usr.getUsername(), usr.getHost(),
+				msg.getArgs().empty() ? "Quit" : msg.getArgs()[0]);
+	handleQuitServer(quitMsg, usr);
+}
 
+void Server::handleQuitServer(std::string& quitMsg, User& usr)
+{
 	for (auto& chanPair : _channels)
 	{
 		Channel& chan = chanPair.second;
 		if (chan.isUserInChannel(usr))
 		{
-			chan.displayChannelMessage(usr, quitMsg);
+			chan.broadcastToChannel(usr, quitMsg);
 			chan.removeUser(usr);
 		}
 	}
@@ -587,18 +588,19 @@ void Server::quit(Message& msg, User& usr)
 	{
 		if (it->fd == fd)
 		{
-			poll_fds_.erase(it);
+			it->fd =
+				-1;  // Will be deleted by main loop. Don't erase here directly.
 			break;
 		}
 	}
 	users_.erase(fd);
 	close(fd);
 	Logger::log(Logger::DEBUG, "Number of connected clients: " +
-			std::to_string(poll_fds_.size() - 1));
+								   std::to_string(poll_fds_.size() - 1));
 }
 
 // maybe all the logs could be moved inside each function
-//void Server::mode(Message& msg, User& usr)
+// void Server::mode(Message& msg, User& usr)
 //{
 //	/*Numeric Replies:*/
 //	/**/
@@ -733,86 +735,89 @@ void Server::quit(Message& msg, User& usr)
 //	}
 //}
 
-void Server::mode(Message &msg, User &usr)
+void Server::mode(Message& msg, User& usr)
 {
-    if (msg.getArgs().empty())
-    {
-        usr.sendData(errNeedMoreParams(SERVER_NAME, usr.getNick(), "MODE"));
-        return;
-    }
+	if (msg.getArgs().empty())
+	{
+		usr.sendData(errNeedMoreParams(SERVER_NAME, usr.getNick(), "MODE"));
+		return;
+	}
 
-    std::string target = msg.getArgs()[0];
+	std::string target = msg.getArgs()[0];
 
-    if (!target.empty() && target[0] == '#')
-    {
-        handleChannelMode(msg, usr);
-    }
-    else
-    {
-        handleUserMode(msg, usr);
-    }
+	if (!target.empty() && target[0] == '#')
+	{
+		handleChannelMode(msg, usr);
+	}
+	else
+	{
+		handleUserMode(msg, usr);
+	}
 }
 
-void Server::handleChannelMode(Message &msg, User &usr)
+void Server::handleChannelMode(Message& msg, User& usr)
 {
-    std::vector<std::string> args = msg.getArgs();
-    if (args.size() < 2)
-    {
-        usr.sendData(errNeedMoreParams(SERVER_NAME, usr.getNick(), "MODE"));
-        return;
-    }
-    std::string channelName = args[0];
-    std::string modes      = args[1];
+	std::vector<std::string> args = msg.getArgs();
+	if (args.size() < 2)
+	{
+		usr.sendData(errNeedMoreParams(SERVER_NAME, usr.getNick(), "MODE"));
+		return;
+	}
+	std::string channelName = args[0];
+	std::string modes = args[1];
 
-    // If there’s a 3rd argument (like a limit or password), store it
-    std::string param = (args.size() >= 3) ? args[2] : "";
+	// If there’s a 3rd argument (like a limit or password), store it
+	std::string param = (args.size() >= 3) ? args[2] : "";
 
-    std::unordered_map<std::string, Channel>::iterator it = _channels.find(channelName);
-    if (it == _channels.end())
-    {
-        usr.sendData(errNoSuchChannel(SERVER_NAME, usr.getNick(), channelName));
-        return;
-    }
+	std::unordered_map<std::string, Channel>::iterator it =
+		_channels.find(channelName);
+	if (it == _channels.end())
+	{
+		usr.sendData(errNoSuchChannel(SERVER_NAME, usr.getNick(), channelName));
+		return;
+	}
 
-    Channel &chan = it->second;
+	Channel& chan = it->second;
 
-    if (!chan.isUserInChannel(usr))
-    {
-        usr.sendData(errNotOnChannel(SERVER_NAME, usr.getNick(), channelName));
-        return;
-    }
-    if (!chan.isUserAnOperatorInChannel(usr))
-    {
-        usr.sendData(errChanPrivsNeeded(SERVER_NAME, usr.getNick(), channelName));
-        return;
-    }
+	if (!chan.isUserInChannel(usr))
+	{
+		usr.sendData(errNotOnChannel(SERVER_NAME, usr.getNick(), channelName));
+		return;
+	}
+	if (!chan.isUserAnOperatorInChannel(usr))
+	{
+		usr.sendData(
+			errChanPrivsNeeded(SERVER_NAME, usr.getNick(), channelName));
+		return;
+	}
 
-    chan.applyChannelMode(usr, modes, param);
+	chan.applyChannelMode(usr, modes, param);
 }
 
-void Server::handleUserMode(Message &msg, User &usr)
+void Server::handleUserMode(Message& msg, User& usr)
 {
-    std::vector<std::string> args = msg.getArgs();
+	std::vector<std::string> args = msg.getArgs();
 
-    std::string targetNick = args[0];
-    std::string modes     = (args.size() >= 2) ? args[1] : "";
-    std::string param     = (args.size() >= 3) ? args[2] : "";
+	std::string targetNick = args[0];
+	std::string modes = (args.size() >= 2) ? args[1] : "";
+	std::string param = (args.size() >= 3) ? args[2] : "";
 
-    User* targetUser = NULL;
-    for (std::unordered_map<int, User>::iterator it = users_.begin(); it != users_.end(); ++it)
-    {
-        if (it->second.getNick() == targetNick)
-        {
-            targetUser = &(it->second);
-            break;
-        }
-    }
-    if (!targetUser)
-    {
-        usr.sendData(errNoSuchNick(SERVER_NAME, usr.getNick(), targetNick));
-        return;
-    }
-    targetUser->applyUserMode(usr, modes, param);
+	User* targetUser = NULL;
+	for (std::unordered_map<int, User>::iterator it = users_.begin();
+		 it != users_.end(); ++it)
+	{
+		if (it->second.getNick() == targetNick)
+		{
+			targetUser = &(it->second);
+			break;
+		}
+	}
+	if (!targetUser)
+	{
+		usr.sendData(errNoSuchNick(SERVER_NAME, usr.getNick(), targetNick));
+		return;
+	}
+	targetUser->applyUserMode(usr, modes, param);
 }
 
 void Server::topic(Message& msg, User& usr)
@@ -834,7 +839,7 @@ void Server::topic(Message& msg, User& usr)
 	{
 		_channels.at(args[0]).showOrSetTopic(usr, newTopic, newTopic.empty());
 	}
-	catch(const std::exception& e)
+	catch (const std::exception& e)
 	{
 		usr.sendData(errNoSuchChannel(SERVER_NAME, usr.getNick(), channelName));
 	}
@@ -872,7 +877,7 @@ void Server::kick(Message& msg, User& usr)
 	try
 	{
 		_channels.at(args[0]).kickUser(usr, args[1],
-				args.size() == 3 ? args[2] : "");
+									   args.size() == 3 ? args[2] : "");
 	}
 	catch (std::exception& e)
 	{
@@ -890,22 +895,16 @@ void Server::who(Message& msg, User& usr)
 	std::vector<std::string> args = msg.getArgs();
 	std::string mask;
 
-	if (!args.empty())
-		mask = args[0];
+	if (!args.empty()) mask = args[0];
 
 	if (mask.empty() || mask == "*")
 	{
 		for (auto user : users_)
 		{
-			usr.sendData(rplWhoReply(SERVER_NAME,
-						usr.getNick(),
-						"*",
-						user.second.getUsername(),
-						user.second.getHost(),
-						SERVER_NAME,
-						user.second.getNick(),
-						'H',
-						user.second.getRealname()));
+			usr.sendData(rplWhoReply(
+				SERVER_NAME, usr.getNick(), "*", user.second.getUsername(),
+				user.second.getHost(), SERVER_NAME, user.second.getNick(), 'H',
+				user.second.getRealname()));
 		}
 		usr.sendData(rplEndOfWho(SERVER_NAME, usr.getNick(), "*"));
 		return;
@@ -913,24 +912,20 @@ void Server::who(Message& msg, User& usr)
 
 	if (mask[0] == '#')
 	{
-		std::unordered_map<std::string, Channel>::iterator chanIt = _channels.find(mask);
+		std::unordered_map<std::string, Channel>::iterator chanIt =
+			_channels.find(mask);
 		if (chanIt == _channels.end())
 		{
 			usr.sendData(rplEndOfWho(SERVER_NAME, usr.getNick(), mask));
 			return;
 		}
-		Channel &channel = chanIt->second;
+		Channel& channel = chanIt->second;
 		for (auto chanUser : channel.getUsers())
 		{
-			usr.sendData(rplWhoReply(SERVER_NAME,
-						usr.getNick(),
-						mask,
-						chanUser->getUsername(),
-						chanUser->getHost(),
-						SERVER_NAME,
-						chanUser->getNick(),
-						'H', 
-						chanUser->getRealname()));
+			usr.sendData(rplWhoReply(
+				SERVER_NAME, usr.getNick(), mask, chanUser->getUsername(),
+				chanUser->getHost(), SERVER_NAME, chanUser->getNick(), 'H',
+				chanUser->getRealname()));
 		}
 		usr.sendData(rplEndOfWho(SERVER_NAME, usr.getNick(), mask));
 		return;
@@ -940,15 +935,10 @@ void Server::who(Message& msg, User& usr)
 	{
 		if (user.second.getNick() == mask)
 		{
-			usr.sendData(rplWhoReply(SERVER_NAME,
-						usr.getNick(),
-						mask,
-						user.second.getUsername(),
-						user.second.getHost(),
-						SERVER_NAME,
-						user.second.getNick(),
-						'H',
-						user.second.getRealname()));
+			usr.sendData(rplWhoReply(
+				SERVER_NAME, usr.getNick(), mask, user.second.getUsername(),
+				user.second.getHost(), SERVER_NAME, user.second.getNick(), 'H',
+				user.second.getRealname()));
 			break;
 		}
 	}
@@ -973,18 +963,18 @@ void Server::whois(Message& msg, User& usr)
 		if (user.second.getNick() == targetNick)
 		{
 			found = true;
-			usr.sendData(rplWhoisUser(SERVER_NAME,
-						usr.getNick(),
-						user.second.getNick(),
-						user.second.getUsername(),
-						user.second.getHost(),
-						user.second.getRealname()));
+			usr.sendData(
+				rplWhoisUser(SERVER_NAME, usr.getNick(), user.second.getNick(),
+							 user.second.getUsername(), user.second.getHost(),
+							 user.second.getRealname()));
 
 			if (user.second.getIsOperator())
 			{
-				usr.sendData(rplWhoisOperator(SERVER_NAME, usr.getNick(), user.second.getNick()));
+				usr.sendData(rplWhoisOperator(SERVER_NAME, usr.getNick(),
+											  user.second.getNick()));
 			}
-			usr.sendData(rplEndOfWhois(SERVER_NAME, usr.getNick(), user.second.getNick()));
+			usr.sendData(rplEndOfWhois(SERVER_NAME, usr.getNick(),
+									   user.second.getNick()));
 			break;
 		}
 	}
@@ -1000,12 +990,12 @@ void Server::ping(Message& msg, User& usr)
 	if (msg.getArgs().empty())
 	{
 		Logger::log(Logger::WARNING,
-				"PING command received with no parameters from user " +
-				usr.getNick());
+					"PING command received with no parameters from user " +
+						usr.getNick());
 		return;
 	}
 	std::string pongResponse = std::string(":") + SERVER_NAME + " PONG " +
-		SERVER_NAME + " :" + msg.getArgs()[0] + "\r\n";
+							   SERVER_NAME + " :" + msg.getArgs()[0] + "\r\n";
 
 	usr.sendData(pongResponse);
 	Logger::log(Logger::DEBUG, "Sent PONG to user " + usr.getNick());
