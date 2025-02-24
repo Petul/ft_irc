@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/24 15:01:39 by mpellegr         ###   ########.fr       */
+/*   Updated: 2025/02/24 16:06:54 by mpellegr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -872,18 +872,23 @@ void Server::invite(Message& msg, User& usr)
 {
 	/*Numeric Replies:*/
 	/**/
-	/*	ERR_NEEDMOREPARAMS				ERR_NOSUCHNICK*/
-	/*	ERR_NOTONCHANNEL				ERR_USERONCHANNEL*/
-	/*	ERR_CHANOPRIVSNEEDED*/
-	/*	RPL_INVITING                    RPL_AWAY*/
+	/*	✓ ERR_NEEDMOREPARAMS				✓ ERR_NOSUCHNICK*/
+	/*	✓ ERR_NOTONCHANNEL				✓ ERR_USERONCHANNEL*/
+	/*	✓ ERR_CHANOPRIVSNEEDED*/
+	/*	✓ RPL_INVITING                    RPL_AWAY*/
 	std::vector<std::string> args = msg.getArgs();
+	if (args.size() < 2)
+	{
+		usr.sendData(errNeedMoreParams(SERVER_NAME, usr.getNick(), "INVITE"));
+		return;
+	}
 	try
 	{
 		_channels.at(args[1]).inviteUser(usr, users_, args[0]);
 	}
 	catch (std::exception& e)
 	{
-		std::cerr << e.what() << std::endl;
+		usr.sendData(errNoSuchChannel(SERVER_NAME, usr.getNick(), args[0]));
 	}
 }
 
