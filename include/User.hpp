@@ -36,6 +36,7 @@ class User
 	const std::string& getRealname() const;
 	void setRealName(std::string& realname);
 
+	void markUserForDeletion();
 	int getSocket() const;
 	const std::string& getHost() const;
 
@@ -45,10 +46,8 @@ class User
 	void setIsOperator();
 	bool getIsOperator();
 
-	void applyUserMode(User &setter,
-		const std::string &modes,
-		const std::string &param);
-
+	void applyUserMode(User& setter, const std::string& modes,
+					   const std::string& param);
 
    private:
 	int sockfd_;

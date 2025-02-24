@@ -36,7 +36,8 @@ int main(int argc, char** argv)
 		{
 			if (!isdigit(it))
 			{
-				throw std::invalid_argument{"Port must be numeric"};
+				throw std::invalid_argument{
+					"Port must be numeric and positive"};
 			}
 		}
 		int port = std::stoi(p_str);

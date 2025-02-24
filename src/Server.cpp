@@ -216,6 +216,18 @@ void Server::clearDisconnectedClients()
 		Logger::log(Logger::DEBUG, "Number of connected clients: " +
 									   std::to_string(poll_fds_.size() - 1));
 	}
+	auto it = users_.begin();
+	while (it != users_.end())
+	{
+		if (it->second.getSocket() == -1)
+		{
+			it = users_.erase(it);
+		}
+		else
+		{
+			it++;
+		}
+	}
 }
 
 void Server::executeCommand(Message& msg, User& usr)
@@ -602,7 +614,8 @@ void Server::handleQuitServer(std::string& quitMsg, User& usr)
 			break;
 		}
 	}
-	users_.erase(fd);
+	users_.at(fd).markUserForDeletion();
+	// users_.erase(fd);
 	close(fd);
 	Logger::log(Logger::DEBUG, "Number of connected clients: " +
 								   std::to_string(poll_fds_.size() - 1));

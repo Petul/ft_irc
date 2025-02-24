@@ -78,6 +78,10 @@ int User::receiveData()
  */
 int User::getNextMessage(std::string& buf)
 {
+	if (this->sockfd_ < 0)
+	{
+		return (0);
+	}
 	std::string part;
 	if (recv_buf_.size() == 0)
 	{
@@ -157,6 +161,10 @@ const std::string& User::getUsername() const
 	return (username_);
 }
 
+void User::markUserForDeletion()
+{
+	sockfd_ = -1;
+}
 int User::getSocket() const
 {
 	return (sockfd_);
@@ -187,10 +195,10 @@ bool User::getIsOperator()
 	return (isOperator_);
 }
 
-// Away is set by some other setter function, this heavily depend on OPER being implemented, so it's just a sketch with same format than applyChannelMode.
-void User::applyUserMode(User &setter,
-		const std::string &modes,
-		const std::string &param)
+// Away is set by some other setter function, this heavily depend on OPER being
+// implemented, so it's just a sketch with same format than applyChannelMode.
+void User::applyUserMode(User& setter, const std::string& modes,
+						 const std::string& param)
 {
 	if (modes.empty())
 	{
@@ -215,22 +223,25 @@ void User::applyUserMode(User &setter,
 		{
 			switch (c)
 			{
-				case 'i': // invisible
+				case 'i':  // invisible
 					break;
-				case 'w': // what the heck even this is?
+				case 'w':  // what the heck even this is?
 					break;
-				case 'o': // TODO need oper
-						  // if (!setter.isServerOperator()) >> ERR_NOPRIVILEGES
+				case 'o':  // TODO need oper
+						   // if (!setter.isServerOperator()) >>
+						   // ERR_NOPRIVILEGES
 					break;
 				default:
-					setter.sendData(errUnknownModeFlag(SERVER_NAME, setter.getNick()));
+					setter.sendData(
+						errUnknownModeFlag(SERVER_NAME, setter.getNick()));
 					break;
 			}
 		}
 	}
 
-	std::string modeChangeMsg = ":" + setter.getNick() + "!" + setter.getUsername() + "@" +
-		setter.getHost() + " MODE " + this->nick_ + " " + modes + "\r\n";
+	std::string modeChangeMsg = ":" + setter.getNick() + "!" +
+								setter.getUsername() + "@" + setter.getHost() +
+								" MODE " + this->nick_ + " " + modes + "\r\n";
 	setter.sendData(modeChangeMsg);
 	if (this != &setter)
 	{
