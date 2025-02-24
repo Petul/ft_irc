@@ -309,8 +309,8 @@ void Channel::inviteUser(User& invitingUsr,
 				std::string fullMsg =
 					rplInviting("ourserver", invitingUsr.getNick(),
 								itU->second.getNick(), _name);
-				write(itU->second.getSocket(), fullMsg.c_str(),
-					  fullMsg.length());
+				invitingUsr.sendData(fullMsg);
+				// TODO: Hey we still need to send the invite!
 			}
 		}
 	}
