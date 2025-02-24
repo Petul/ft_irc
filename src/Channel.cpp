@@ -310,6 +310,7 @@ void Channel::inviteUser(User& invitingUsr,
 					rplInviting("ourserver", invitingUsr.getNick(),
 								itU->second.getNick(), _name);
 				invitingUsr.sendData(fullMsg);
+				itU->second.sendData(":" + invitingUsr.getNick() + " INVITE " + invitedUsrNickname + " " + _name);
 				// TODO: Hey we still need to send the invite!
 			}
 		}
@@ -392,6 +393,9 @@ void Channel::applyChannelMode(User& setter, const std::string& modes,
 		{
 			switch (c)
 			{
+				case 'b':
+					setter.sendData(rplEndOfBanList(SERVER_NAME, setter.getNick(), _name));
+					break;
 				case 'i':
 					if (adding)
 					{
@@ -556,4 +560,20 @@ void Channel::applyChannelMode(User& setter, const std::string& modes,
 		rplChannelMode(setter.getNick(), setter.getUsername(), setter.getHost(),
 					   _name, modes, param);
 	broadcastToChannel(setter, modeChangeMsg);
+}
+
+std::string Channel::getChannelModes() const
+{
+	std::string modes = "";
+	if (_isInviteOnly)
+		modes += "i";
+	if (_restrictionsOnTopic)
+		modes += "t";
+	if (_userLimit != MAX_USERS)
+		modes += "l";
+	if (!_password.empty())
+		modes += "k";
+	if (!modes.empty())
+		modes = "+" + modes;
+	return modes;
 }

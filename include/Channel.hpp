@@ -79,4 +79,6 @@ class Channel
 
 	void applyChannelMode(User& setter, const std::string& modes,
 						  const std::string& param);
+
+	std::string getChannelModes() const;
 };
