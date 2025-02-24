@@ -114,7 +114,9 @@ int User::sendData(const std::string& buf)
 	int n_bytes = write(this->sockfd_, buf.c_str(), buf.length());
 	if (n_bytes < 0)
 	{
-		throw std::runtime_error{"Failed to send data to user " + nick_};
+		Logger::log(Logger::WARNING,
+					"Failed to send data to user " + nick_ + ": " + buf);
+		return (n_bytes);
 	}
 	Logger::log(Logger::DEBUG, "Sent data to user " + nick_ + ": " + buf);
 	return (n_bytes);

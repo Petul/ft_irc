@@ -601,7 +601,6 @@ void Server::handleQuitServer(std::string& quitMsg, User& usr)
 			chan.removeUser(usr);
 		}
 	}
-	usr.sendData(quitMsg);
 
 	int fd = usr.getSocket();
 	// Works, but can we make it better?
@@ -614,11 +613,9 @@ void Server::handleQuitServer(std::string& quitMsg, User& usr)
 			break;
 		}
 	}
+	usr.sendData(quitMsg);
 	users_.at(fd).markUserForDeletion();
-	// users_.erase(fd);
 	close(fd);
-	Logger::log(Logger::DEBUG, "Number of connected clients: " +
-								   std::to_string(poll_fds_.size() - 1));
 }
 
 // maybe all the logs could be moved inside each function
