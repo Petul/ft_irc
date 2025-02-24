@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/22 21:56:14 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/24 15:01:39 by mpellegr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -777,11 +777,11 @@ void Server::mode(Message& msg, User& usr)
 void Server::handleChannelMode(Message& msg, User& usr)
 {
 	std::vector<std::string> args = msg.getArgs();
-	if (args.size() < 2)
-	{
-		usr.sendData(errNeedMoreParams(SERVER_NAME, usr.getNick(), "MODE"));
-		return;
-	}
+	// if (args.size() < 2)
+	// {
+	// 	usr.sendData(errNeedMoreParams(SERVER_NAME, usr.getNick(), "MODE"));
+	// 	return;
+	// }
 	std::string channelName = args[0];
 	std::string modes = args[1];
 
@@ -809,7 +809,11 @@ void Server::handleChannelMode(Message& msg, User& usr)
 			errChanPrivsNeeded(SERVER_NAME, usr.getNick(), channelName));
 		return;
 	}
-
+	if (args.size() < 2)
+	{
+		usr.sendData(rplChannelModeIs(SERVER_NAME, usr.getNick(), chan.getName(), chan.getChannelModes()));
+		return;
+	}
 	chan.applyChannelMode(usr, modes, param);
 }
 
