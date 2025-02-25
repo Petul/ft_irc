@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/25 17:27:29 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/25 11:55:04 by mpellegr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -423,7 +423,17 @@ void Server::privmsg(Message& msg, User& usr)
 	std::string message = args[1];
 	std::istringstream targetStream(targets);
 	std::string target;
+
 	int targetCount = 0;
+	while (std::getline(targetStream, targets, ','))
+	{
+		targetCount++;
+		if (targetCount > TARGETS_LIM_IN_ONE_COMMAND)
+		{
+			usr.sendData(errTooManyTargets(SERVER_NAME, usr.getNick()));
+			return;
+		}
+	}
 
 	while (std::getline(targetStream, target, ','))
 	{
@@ -431,12 +441,7 @@ void Server::privmsg(Message& msg, User& usr)
 		{
 			continue;
 		}
-		if (targetCount > TARGETS_LIM_IN_ONE_COMMAND)
-		{
-			usr.sendData(errTooManyTargets(SERVER_NAME, usr.getNick()));
-			return;
-		}
-		targetCount++;
+
 		// If the target starts with ('#'), treat as channel.
 		if (target[0] == '#')
 		{
