@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   User.hpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pleander <pleander@student.hive.fi>        +#+  +:+       +#+        */
+/*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 12:56:56 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/22 21:15:53 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/25 06:54:13 by mpellegr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,6 +49,9 @@ class User
 	void applyUserMode(User& setter, const std::string& modes,
 					   const std::string& param);
 
+	void setAwayMsg(std::string msg);
+	std::string getAwayMsg() const;
+
    private:
 	int sockfd_;
 	std::string recv_buf_;
@@ -60,4 +63,5 @@ class User
 	std::string nick_;
 	std::string host_;
 	bool isOperator_;
+	std::string awayMsg_;
 };

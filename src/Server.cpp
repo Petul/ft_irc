@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/24 15:01:39 by mpellegr         ###   ########.fr       */
+/*   Updated: 2025/02/25 07:28:58 by mpellegr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -80,7 +80,7 @@ const std::map<COMMANDTYPE, Server::executeFunc> Server::execute_map_ = {
 	{QUIT, &Server::quit},       {MODE, &Server::mode},
 	{KICK, &Server::kick},       {NOTICE, &Server::notice},
 	{TOPIC, &Server::topic},     {PING, &Server::ping},
-	{PONG, &Server::pong}
+	{PONG, &Server::pong},       {AWAY, &Server::away}
 	// Extend this list when we have more functions
 };
 
@@ -452,11 +452,11 @@ void Server::privmsg(Message& msg, User& usr)
 				{
 					std::string fullMsg =
 						rplPrivMsg(usr.getNick(), target, message);
-					//	if (userPair.second.isAway())
-					//	{
-					//		usr.sendData(rplAway(SERVER_NAME, usr.getNick(),
-					// target, userPair.second.getAwayMessage()))
-					//	}
+						if (!userPair.second.getAwayMsg().empty())
+						{
+							usr.sendData(rplAway(SERVER_NAME, usr.getNick(),
+								target, userPair.second.getAwayMsg()));
+						}
 					userPair.second.sendData(fullMsg);
 					found = true;
 					break;
@@ -847,9 +847,9 @@ void Server::topic(Message& msg, User& usr)
 {
 	/*Numeric Replies:*/
 	/**/
-	/*	ERR_NEEDMOREPARAMS				ERR_NOTONCHANNEL*/
-	/*	RPL_NOTOPIC						RPL_TOPIC*/
-	/*	ERR_CHANOPRIVSNEEDED			ERR_NOCHANMODES*/
+	/*	✓ ERR_NEEDMOREPARAMS			✓ ERR_NOTONCHANNEL*/
+	/*	✓ RPL_NOTOPIC					✓ RPL_TOPIC*/
+	/*	✓ ERR_CHANOPRIVSNEEDED			ERR_NOCHANMODES | not needed*/
 	std::vector<std::string> args = msg.getArgs();
 	if (args.empty())
 	{
@@ -872,18 +872,23 @@ void Server::invite(Message& msg, User& usr)
 {
 	/*Numeric Replies:*/
 	/**/
-	/*	ERR_NEEDMOREPARAMS				ERR_NOSUCHNICK*/
-	/*	ERR_NOTONCHANNEL				ERR_USERONCHANNEL*/
-	/*	ERR_CHANOPRIVSNEEDED*/
-	/*	RPL_INVITING                    RPL_AWAY*/
+	/*	✓ ERR_NEEDMOREPARAMS				✓ ERR_NOSUCHNICK*/
+	/*	✓ ERR_NOTONCHANNEL				✓ ERR_USERONCHANNEL*/
+	/*	✓ ERR_CHANOPRIVSNEEDED*/
+	/*	✓ RPL_INVITING                    ✓ RPL_AWAY*/
 	std::vector<std::string> args = msg.getArgs();
+	if (args.size() < 2)
+	{
+		usr.sendData(errNeedMoreParams(SERVER_NAME, usr.getNick(), "INVITE"));
+		return;
+	}
 	try
 	{
 		_channels.at(args[1]).inviteUser(usr, users_, args[0]);
 	}
 	catch (std::exception& e)
 	{
-		std::cerr << e.what() << std::endl;
+		usr.sendData(errNoSuchChannel(SERVER_NAME, usr.getNick(), args[0]));
 	}
 }
 
@@ -891,12 +896,22 @@ void Server::kick(Message& msg, User& usr)
 {
 	/*Numeric Replies:*/
 	/**/
-	/*	ERR_NEEDMOREPARAMS				ERR_NOSUCHCHANNEL*/
-	/*	ERR_BADCHANMASK					ERR_CHANOPRIVSNEEDED*/
-	/*	ERR_USERNOTINCHANNEL			ERR_NOTONCHANNEL*/
+	/*	✓ ERR_NEEDMOREPARAMS			✓ ERR_NOSUCHCHANNEL*/
+	/*	✓ ERR_BADCHANMASK				✓ ERR_CHANOPRIVSNEEDED*/
+	/*	✓ ERR_USERNOTINCHANNEL			✓ ERR_NOTONCHANNEL*/
 	/**/
 
 	std::vector<std::string> args = msg.getArgs();
+	if (args.size() < 2)
+	{
+		usr.sendData(errNeedMoreParams(SERVER_NAME, usr.getNick(), "KICK"));
+		return;
+	}
+	if (args[0][0] != '#')
+	{
+		usr.sendData(errBadChanMask(SERVER_NAME, usr.getNick(), "KICK"));
+		return;
+	}
 	try
 	{
 		_channels.at(args[0]).kickUser(usr, args[1],
@@ -904,7 +919,7 @@ void Server::kick(Message& msg, User& usr)
 	}
 	catch (std::exception& e)
 	{
-		std::cerr << e.what() << std::endl;
+		usr.sendData(errNoSuchChannel(SERVER_NAME, usr.getNick(), args[0]));
 	}
 }
 
@@ -1027,4 +1042,10 @@ void Server::ping(Message& msg, User& usr)
 void Server::pong(Message& msg, User& usr)
 {
 	Logger::log(Logger::DEBUG, "Received PONG from user " + usr.getNick());
+}
+
+void Server::away(Message& msg, User& usr)
+{
+	std::vector<std::string> args = msg.getArgs();
+	usr.setAwayMsg(!args.empty() ? args[0] : "");
 }
