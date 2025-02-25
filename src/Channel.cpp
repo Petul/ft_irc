@@ -280,8 +280,7 @@ void Channel::kickUser(User& source, std::string targetUsername,
 
 	if (!targetUser)
 	{
-		source.sendData(
-			errNotOnChannel(SERVER_NAME, source.getNick(), _name));
+		source.sendData(errNotOnChannel(SERVER_NAME, source.getNick(), _name));
 		return;
 	}
 
@@ -301,7 +300,8 @@ void Channel::inviteUser(User& invitingUsr,
 {
 	if (!this->isUserAnOperatorInChannel(invitingUsr))
 	{
-		invitingUsr.sendData(errChanPrivsNeeded(SERVER_NAME, invitingUsr.getNick(), _name));
+		invitingUsr.sendData(
+			errChanPrivsNeeded(SERVER_NAME, invitingUsr.getNick(), _name));
 		return;
 	}
 
@@ -311,24 +311,30 @@ void Channel::inviteUser(User& invitingUsr,
 		{
 			if (_invitedUsers.find(&itU->second) != _invitedUsers.end())
 			{
-				invitingUsr.sendData(errUserOnChannel(SERVER_NAME, invitingUsr.getNick(), invitedUsrNickname, _name));
+				invitingUsr.sendData(
+					errUserOnChannel(SERVER_NAME, invitingUsr.getNick(),
+									 invitedUsrNickname, _name));
 				return;
 			}
 			if (!itU->second.getAwayMsg().empty())
 			{
-				invitingUsr.sendData(rplAway(SERVER_NAME, invitingUsr.getNick(), itU->second.getNick(), itU->second.getAwayMsg()));
+				invitingUsr.sendData(rplAway(SERVER_NAME, invitingUsr.getNick(),
+											 itU->second.getNick(),
+											 itU->second.getAwayMsg()));
 			}
 			_invitedUsers.insert(&itU->second);
 			std::string fullMsg =
 				rplInviting("ourserver", invitingUsr.getNick(),
 							itU->second.getNick(), _name);
 			invitingUsr.sendData(fullMsg);
-			itU->second.sendData(":" + invitingUsr.getNick() + " INVITE " + invitedUsrNickname + " " + _name + "\r\n");
+			itU->second.sendData(":" + invitingUsr.getNick() + " INVITE " +
+								 invitedUsrNickname + " " + _name + "\r\n");
 			// TODO: Hey we still need to send the invite!
 			return;
 		}
 	}
-	invitingUsr.sendData(errNoSuchNick(SERVER_NAME, invitingUsr.getNick(), invitedUsrNickname));
+	invitingUsr.sendData(
+		errNoSuchNick(SERVER_NAME, invitingUsr.getNick(), invitedUsrNickname));
 }
 
 void Channel::showOrSetTopic(User& usr, std::string newTopic,
@@ -408,7 +414,8 @@ void Channel::applyChannelMode(User& setter, const std::string& modes,
 			switch (c)
 			{
 				case 'b':
-					setter.sendData(rplEndOfBanList(SERVER_NAME, setter.getNick(), _name));
+					setter.sendData(
+						rplEndOfBanList(SERVER_NAME, setter.getNick(), _name));
 					break;
 				case 'i':
 					if (adding)
@@ -579,15 +586,10 @@ void Channel::applyChannelMode(User& setter, const std::string& modes,
 std::string Channel::getChannelModes() const
 {
 	std::string modes = "";
-	if (_isInviteOnly)
-		modes += "i";
-	if (_restrictionsOnTopic)
-		modes += "t";
-	if (_userLimit != MAX_USERS)
-		modes += "l";
-	if (!_password.empty())
-		modes += "k";
-	if (!modes.empty())
-		modes = "+" + modes;
+	if (_isInviteOnly) modes += "i";
+	if (_restrictionsOnTopic) modes += "t";
+	if (_userLimit != MAX_USERS) modes += "l";
+	if (!_password.empty()) modes += "k";
+	if (!modes.empty()) modes = "+" + modes;
 	return modes;
 }

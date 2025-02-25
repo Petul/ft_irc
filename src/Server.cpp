@@ -195,7 +195,7 @@ void Server::receiveDataFromClient(int i)
 			"Client " + std::to_string(poll_fds_[i].fd) + " disconnected";
 		Logger::log(Logger::INFO, msg);
 		std::string quitMsg = rplQuit(usr->getNick(), usr->getUsername(),
-									  usr->getHost(), "Disconnected");
+									  usr->getHost(), "Client disconnect");
 		handleQuitServer(quitMsg, *usr);
 		return;
 	}
@@ -601,13 +601,18 @@ void Server::quit(Message& msg, User& usr)
 
 void Server::handleQuitServer(std::string& quitMsg, User& usr)
 {
-	for (auto& chanPair : _channels)
+	auto it = _channels.begin();
+	while (it != _channels.end())
 	{
-		Channel& chan = chanPair.second;
-		if (chan.isUserInChannel(usr))
+		if (it->second.isUserInChannel(usr))
 		{
-			chan.broadcastToChannel(usr, quitMsg);
-			chan.removeUser(usr);
+			it->second.broadcastToChannel(usr, quitMsg);
+			it->second.removeUser(usr);
+			it = _channels.erase(it);
+		}
+		else
+		{
+			it++;
 		}
 	}
 
