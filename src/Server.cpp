@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/25 10:19:12 by mpellegr         ###   ########.fr       */
+/*   Updated: 2025/02/25 10:29:27 by mpellegr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -393,7 +393,7 @@ void Server::privmsg(Message& msg, User& usr)
 	/**/
 	/*✓	ERR_NORECIPIENT				✓ ERR_NOTEXTTOSEND*/
 	/*✓	ERR_CANNOTSENDTOCHAN		  ERR_NOTOPLEVEL*/
-	/*	ERR_WILDTOPLEVEL			  ERR_TOOMANYTARGETS*/
+	/*	ERR_WILDTOPLEVEL			✓ ERR_TOOMANYTARGETS*/
 	/*✓	ERR_NOSUCHNICK*/
 	/*✓	RPL_AWAY*/
 
@@ -413,6 +413,18 @@ void Server::privmsg(Message& msg, User& usr)
 	std::string message = args[1];
 	std::istringstream targetStream(targets);
 	std::string target;
+
+	int targetCount = 0;
+	while (std::getline(targetStream, targets, ','))
+	{
+		targetCount++;
+		if (targetCount > TARGETS_LIM_IN_ONE_COMMAND)
+		{
+			usr.sendData(errTooManyTargets(SERVER_NAME, usr.getNick()));
+			return;
+		}
+	}
+
 	while (std::getline(targetStream, target, ','))
 	{
 		if (target.empty())
@@ -498,9 +510,8 @@ void Server::join(Message& msg, User& usr)
 	while (std::getline(channelStream, channelName, ','))
 	{
 		channelCount++;
-		if (channelCount > CHANNELS_USER_CAN_JOIN_IN_ONE_COMMAND)
+		if (channelCount > TARGETS_LIM_IN_ONE_COMMAND)
 		{
-			std::cout << "here?\n";
 			usr.sendData(errTooManyTargets(SERVER_NAME, usr.getNick()));
 			return;
 		}
