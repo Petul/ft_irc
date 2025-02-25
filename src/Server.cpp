@@ -241,11 +241,10 @@ void Server::clearDisconnectedClients()
 
 void Server::executeCommand(Message& msg, User& usr)
 {
-	// if (!usr.isRegistered() && msg.getType() > 4) // commented out just
-	// for testing
-	// {
-	//	return;
-	// }
+	if (!usr.isRegistered() && msg.getType() > 4)
+	{
+		return;
+	}
 	std::map<COMMANDTYPE, executeFunc>::const_iterator it =
 		execute_map_.find(msg.getType());
 	if (it != execute_map_.end())
