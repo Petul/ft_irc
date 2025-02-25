@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/13 16:26:34 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/25 06:48:05 by mpellegr         ###   ########.fr       */
+/*   Updated: 2025/02/25 09:40:31 by mpellegr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,7 @@
 #define PASS_MIN_LEN 4
 #define SERVER_VER "0.1"
 #define SERVER_NAME "ircserv"
+#define CHANNELS_USER_CAN_JOIN_IN_ONE_COMMAND 5
 
 #include <netinet/in.h>
 #include <poll.h>

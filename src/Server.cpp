@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/25 07:28:58 by mpellegr         ###   ########.fr       */
+/*   Updated: 2025/02/25 10:19:12 by mpellegr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -478,7 +478,7 @@ void Server::join(Message& msg, User& usr)
 	/*		 ✓	ERR_INVITEONLYCHAN			✓  ERR_BADCHANNELKEY*/
 	/*		 ✓	ERR_CHANNELISFULL			   ERR_BADCHANMASK*/
 	/*		 ✓	ERR_NOSUCHCHANNEL			   ERR_TOOMANYCHANNELS*/
-	/*			ERR_TOOMANYTARGETS			   ERR_UNAVAILRESOURCE*/
+	/*		 ✓  ERR_TOOMANYTARGETS			   ERR_UNAVAILRESOURCE*/
 	/*		 ✓	RPL_TOPIC*/
 	if (msg.getArgs().empty())
 	{
@@ -493,6 +493,23 @@ void Server::join(Message& msg, User& usr)
 	std::istringstream channelStream(channelArg);
 	std::istringstream passwordStream(passwordArg);
 	std::string channelName, channelPassword;
+
+	int channelCount = 0;
+	while (std::getline(channelStream, channelName, ','))
+	{
+		channelCount++;
+		if (channelCount > CHANNELS_USER_CAN_JOIN_IN_ONE_COMMAND)
+		{
+			std::cout << "here?\n";
+			usr.sendData(errTooManyTargets(SERVER_NAME, usr.getNick()));
+			return;
+		}
+	}
+
+	channelStream.clear();
+	channelStream.str(channelArg);
+	passwordStream.clear();
+	passwordStream.str(passwordArg);
 
 	while (std::getline(channelStream, channelName, ','))
 	{
