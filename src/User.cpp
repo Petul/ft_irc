@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 13:32:51 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/22 21:18:04 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/25 07:22:07 by mpellegr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,7 +27,7 @@ User::User() : sockfd_{-1}
 {
 }
 
-User::User(int sockfd) : sockfd_{sockfd}, registered_{false}, isOperator_{false}
+User::User(int sockfd) : sockfd_{sockfd}, registered_{false}, isOperator_{false}, awayMsg_{""}
 {
 	struct sockaddr_in addr;
 	socklen_t addr_len = sizeof(addr);
@@ -249,4 +249,18 @@ void User::applyUserMode(User& setter, const std::string& modes,
 	{
 		this->sendData(modeChangeMsg);
 	}
+}
+
+void User::setAwayMsg(std::string msg)
+{
+	if (msg.empty())
+		this->sendData(rplUnaway(SERVER_NAME, nick_));
+	else
+		this->sendData(rplNowAway(SERVER_NAME, nick_));
+	awayMsg_ = msg;
+}
+
+std::string User::getAwayMsg() const
+{
+	return awayMsg_;
 }

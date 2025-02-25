@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/15 15:58:57 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/22 21:02:07 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/25 06:48:47 by mpellegr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,7 +36,8 @@ enum COMMANDTYPE
 	NOTICE,
 	TOPIC,
 	PING,
-	PONG
+	PONG,
+	AWAY
 	// Add more
 };
 

@@ -281,7 +281,7 @@ void Channel::kickUser(User& source, std::string targetUsername,
 	if (!targetUser)
 	{
 		source.sendData(
-			errUserNotInChannel(SERVER_NAME, source.getNick(), _name));
+			errNotOnChannel(SERVER_NAME, source.getNick(), _name));
 		return;
 	}
 
@@ -314,12 +314,16 @@ void Channel::inviteUser(User& invitingUsr,
 				invitingUsr.sendData(errUserOnChannel(SERVER_NAME, invitingUsr.getNick(), invitedUsrNickname, _name));
 				return;
 			}
+			if (!itU->second.getAwayMsg().empty())
+			{
+				invitingUsr.sendData(rplAway(SERVER_NAME, invitingUsr.getNick(), itU->second.getNick(), itU->second.getAwayMsg()));
+			}
 			_invitedUsers.insert(&itU->second);
 			std::string fullMsg =
 				rplInviting("ourserver", invitingUsr.getNick(),
 							itU->second.getNick(), _name);
 			invitingUsr.sendData(fullMsg);
-			itU->second.sendData(":" + invitingUsr.getNick() + " INVITE " + invitedUsrNickname + " " + _name);
+			itU->second.sendData(":" + invitingUsr.getNick() + " INVITE " + invitedUsrNickname + " " + _name + "\r\n");
 			// TODO: Hey we still need to send the invite!
 			return;
 		}
