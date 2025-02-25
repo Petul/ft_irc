@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 13:32:51 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/25 07:22:07 by mpellegr         ###   ########.fr       */
+/*   Updated: 2025/02/25 20:47:40 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,7 +27,8 @@ User::User() : sockfd_{-1}
 {
 }
 
-User::User(int sockfd) : sockfd_{sockfd}, registered_{false}, isOperator_{false}, awayMsg_{""}
+User::User(int sockfd) : sockfd_{sockfd}, registered_{false},
+	isOperator_{false}, awayMsg_{""}, usrChannelCount_{0}
 {
 	struct sockaddr_in addr;
 	socklen_t addr_len = sizeof(addr);
@@ -195,6 +196,24 @@ void User::setIsOperator()
 bool User::getIsOperator()
 {
 	return (isOperator_);
+}
+
+int User::getUsrChannelCount()
+{
+	return (usrChannelCount_);
+}
+
+void User::incUsrChannelCount()
+{
+	usrChannelCount_++;
+}
+
+void User::decUsrChannelCount()
+{
+	if (usrChannelCount_ > 0)
+	{
+		usrChannelCount_--;
+	}
 }
 
 // Away is set by some other setter function, this heavily depend on OPER being

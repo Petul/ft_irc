@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 12:56:56 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/25 06:54:13 by mpellegr         ###   ########.fr       */
+/*   Updated: 2025/02/25 20:49:59 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,6 +52,10 @@ class User
 	void setAwayMsg(std::string msg);
 	std::string getAwayMsg() const;
 
+	int getUsrChannelCount();
+	void incUsrChannelCount();
+	void decUsrChannelCount();
+
    private:
 	int sockfd_;
 	std::string recv_buf_;
@@ -64,4 +68,5 @@ class User
 	std::string host_;
 	bool isOperator_;
 	std::string awayMsg_;
+	int usrChannelCount_;
 };

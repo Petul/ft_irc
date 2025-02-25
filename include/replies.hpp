@@ -6,7 +6,7 @@
 /*   By: jmakkone <jmakkone@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/18 17:55:46 by jmakkone          #+#    #+#             */
-/*   Updated: 2025/02/22 21:32:58 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/25 18:20:08 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -274,10 +274,10 @@ inline std::string errTooManyChannels(const std::string& serverName,
 // ERR_TOOMANYTARGETS (407)
 // "Duplicate recipients. No message delivered"
 inline std::string errTooManyTargets(const std::string& serverName,
-									 const std::string& nick)
+									 const std::string& nick,
+									 const std::string& message)
 {
-	return ":" + serverName + " 407 " + nick +
-		   " :Duplicate recipients. No message delivered\r\n";
+	return ":" + serverName + " 407 " + nick + " :" + message + "\r\n";
 }
 
 // ERR_UNAVAILRESOURCE (437)
