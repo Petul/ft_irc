@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/25 17:27:29 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/25 21:58:38 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -413,7 +413,7 @@ void Server::privmsg(Message& msg, User& usr)
 		usr.sendData(errNoRecipient(SERVER_NAME, usr.getNick(), "PRIVMSG"));
 		return;
 	}
-	if (args[0].empty())
+	if (args.size() < 2 || args[1].empty())
 	{
 		usr.sendData(errNoTextToSend(SERVER_NAME, usr.getNick()));
 		return;
@@ -423,20 +423,38 @@ void Server::privmsg(Message& msg, User& usr)
 	std::string message = args[1];
 	std::istringstream targetStream(targets);
 	std::string target;
+	std::vector<std::string> allTargets;
+	std::set<std::string> usedTargets;
 	int targetCount = 0;
 
 	while (std::getline(targetStream, target, ','))
+	{
+		if (target.empty()) 
+		{
+			continue;
+		}
+		targetCount++;
+		if (targetCount > TARGETS_LIM_IN_ONE_COMMAND)
+		{
+			usr.sendData(errTooManyTargets(SERVER_NAME, usr.getNick(), "Too many targets."));
+			return;
+		}
+		if (!usedTargets.insert(target).second)
+		{
+			usr.sendData(errTooManyTargets(SERVER_NAME, usr.getNick(),
+						"Duplicate recipients. No message delivered"));
+			return;
+		}
+		allTargets.push_back(target);
+	}
+
+	for (auto target : allTargets)
 	{
 		if (target.empty())
 		{
 			continue;
 		}
-		if (targetCount > TARGETS_LIM_IN_ONE_COMMAND)
-		{
-			usr.sendData(errTooManyTargets(SERVER_NAME, usr.getNick()));
-			return;
-		}
-		targetCount++;
+
 		// If the target starts with ('#'), treat as channel.
 		if (target[0] == '#')
 		{
@@ -517,16 +535,13 @@ void Server::join(Message& msg, User& usr)
 		channelCount++;
 		if (channelCount > TARGETS_LIM_IN_ONE_COMMAND)
 		{
-			usr.sendData(errTooManyTargets(SERVER_NAME, usr.getNick()));
+			usr.sendData(errTooManyTargets(SERVER_NAME, usr.getNick(), "Too many targets."));
 			return;
 		}
 	}
 
 	channelStream.clear();
 	channelStream.str(channelArg);
-	passwordStream.clear();
-	passwordStream.str(passwordArg);
-
 	while (std::getline(channelStream, channelName, ','))
 	{
 		if (!passwordStream.eof())
@@ -548,10 +563,21 @@ void Server::join(Message& msg, User& usr)
 			continue;
 		}
 
+		if (usr.getUsrChannelCount() >= USR_CHANNEL_LIMIT)
+		{
+			usr.sendData(errTooManyChannels(SERVER_NAME, usr.getNick()));
+			throw (std::invalid_argument("User channel limit reached"));
+		}
+
 		std::unordered_map<std::string, Channel>::iterator it =
 			_channels.find(channelName);
 		if (it == _channels.end())
 		{
+			if (_channels.size() >= SERVER_CHANNEL_LIMIT)
+			{
+				usr.sendData(errTooManyTargets(SERVER_NAME, usr.getNick(), "Server channel limit reached"));
+				throw (std::invalid_argument("Server channel limit reached"));
+			}
 			Channel newChannel(channelName, usr);
 			if (!channelPassword.empty())
 			{
@@ -567,7 +593,6 @@ void Server::join(Message& msg, User& usr)
 		}
 
 		Channel& channel = it->second;
-
 		channel.joinUser(SERVER_NAME, usr, channelPassword);
 	}
 }
@@ -632,7 +657,10 @@ void Server::handleQuitServer(std::string& quitMsg, User& usr)
 		{
 			it->second.broadcastToChannel(usr, quitMsg);
 			it->second.removeUser(usr);
-			it = _channels.erase(it);
+			if (it->second.getUserCount() == 0)
+			{
+				it = _channels.erase(it);
+			}
 		}
 		else
 		{

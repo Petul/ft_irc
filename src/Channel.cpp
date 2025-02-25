@@ -205,7 +205,7 @@ void Channel::joinUser(const std::string& serverName, User& usr,
 	}
 
 	addUser(usr);
-
+	usr.incUsrChannelCount();
 	std::string joinMsg =
 		rplJoin(usr.getNick(), usr.getUsername(), usr.getHost(), _name);
 
@@ -247,6 +247,7 @@ void Channel::partUser(User& usr, const std::string& partMessage)
 	{
 		user->sendData(partMsg);
 	}
+	usr.decUsrChannelCount();
 	usr.sendData(partMsg);
 	Logger::log(Logger::INFO,
 				"User " + usr.getNick() + " parted channel " + _name);

@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/13 16:26:34 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/25 10:25:56 by mpellegr         ###   ########.fr       */
+/*   Updated: 2025/02/25 21:24:18 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,9 @@
 #define PASS_MIN_LEN 4
 #define SERVER_VER "0.1"
 #define SERVER_NAME "ircserv"
-#define TARGETS_LIM_IN_ONE_COMMAND 5
+#define TARGETS_LIM_IN_ONE_COMMAND 15
+#define SERVER_CHANNEL_LIMIT 50
+#define USR_CHANNEL_LIMIT 25
 
 #include <netinet/in.h>
 #include <poll.h>
