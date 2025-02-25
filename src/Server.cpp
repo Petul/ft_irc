@@ -785,7 +785,6 @@ void Server::mode(Message& msg, User& usr)
 
 void Server::handleChannelMode(Message& msg, User& usr)
 {
-	// std::vector<std::string>& args = msg.getArgs();
 	if (msg.getArgs().size() < 1)
 	{
 		usr.sendData(errNeedMoreParams(SERVER_NAME, usr.getNick(), "MODE"));
