@@ -12,10 +12,10 @@
 
 #pragma once
 
+#include <map>
 #include <sstream>
 #include <string>
 #include <vector>
-#include <map>
 
 enum COMMANDTYPE
 {
@@ -52,10 +52,12 @@ class Message
 	void parseMessage();
 	COMMANDTYPE getType();
 	std::vector<std::string>& getArgs();
+	std::string& getRawType();
 
    private:
 	void parseType();
 	std::string raw_message_;
+	std::string raw_type_;
 	std::stringstream msg_ss_;
 	COMMANDTYPE cmd_type_;
 	std::vector<std::string> args_;

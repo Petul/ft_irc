@@ -253,7 +253,8 @@ void Server::executeCommand(Message& msg, User& usr)
 	}
 	else
 	{
-		throw std::invalid_argument("Unsupported command");
+		usr.sendData(
+			errUnknownCommand(SERVER_NAME, usr.getNick(), msg.getRawType()));
 	}
 }
 
