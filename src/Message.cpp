@@ -24,11 +24,17 @@ Message::Message(std::string& raw_message)
 }
 
 const std::map<std::string, COMMANDTYPE> Message::command_map_ = {
-	{"PASS", PASS},       {"NICK", NICK},   {"USER", USER}, {"OPER", OPER},
-	{"PRIVMSG", PRIVMSG}, {"JOIN", JOIN},   {"PART", PART}, {"INVITE", INVITE},
-	{"WHO", WHO},         {"WHOIS", WHOIS},	{"QUIT", QUIT}, {"MODE", MODE},
-	{"KICK", KICK},		  {"NOTICE", NOTICE}, {"TOPIC", TOPIC}, {"PING", PING},
-	{"PONG", PONG},		  {"AWAY", AWAY}};
+	{"PASS", PASS},   {"NICK", NICK},       {"USER", USER},
+	{"OPER", OPER},   {"PRIVMSG", PRIVMSG}, {"JOIN", JOIN},
+	{"PART", PART},   {"INVITE", INVITE},   {"WHO", WHO},
+	{"WHOIS", WHOIS}, {"QUIT", QUIT},       {"MODE", MODE},
+	{"KICK", KICK},   {"NOTICE", NOTICE},   {"TOPIC", TOPIC},
+	{"PING", PING},   {"PONG", PONG},       {"AWAY", AWAY}};
+
+std::string& Message::getRawType()
+{
+	return (raw_type_);
+}
 
 void Message::parseMessage()
 {
@@ -64,6 +70,7 @@ void Message::parseType()
 {
 	std::string command;
 	msg_ss_ >> command;
+	raw_type_ = command;
 	auto it = command_map_.find(command);
 	if (it != command_map_.end())
 	{
@@ -71,8 +78,7 @@ void Message::parseType()
 	}
 	else
 	{
-		throw std::invalid_argument("Invalid command: " +
-									command);  // Reply to the user instead
+		cmd_type_ = NONE;
 	}
 }
 

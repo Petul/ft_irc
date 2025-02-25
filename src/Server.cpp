@@ -72,15 +72,24 @@ void Server::handleSignal(int signum)
 	exit(0);
 }
 const std::map<COMMANDTYPE, Server::executeFunc> Server::execute_map_ = {
-	{PASS, &Server::pass},       {NICK, &Server::nick},
-	{USER, &Server::user},       {OPER, &Server::oper},
-	{PRIVMSG, &Server::privmsg}, {JOIN, &Server::join},
-	{PART, &Server::part},       {INVITE, &Server::invite},
-	{WHO, &Server::who},         {WHOIS, &Server::whois},
-	{QUIT, &Server::quit},       {MODE, &Server::mode},
-	{KICK, &Server::kick},       {NOTICE, &Server::notice},
-	{TOPIC, &Server::topic},     {PING, &Server::ping},
-	{PONG, &Server::pong},       {AWAY, &Server::away}
+	{PASS, &Server::pass},
+	{NICK, &Server::nick},
+	{USER, &Server::user},
+	{OPER, &Server::oper},
+	{PRIVMSG, &Server::privmsg},
+	{JOIN, &Server::join},
+	{PART, &Server::part},
+	{INVITE, &Server::invite},
+	{WHO, &Server::who},
+	{WHOIS, &Server::whois},
+	{QUIT, &Server::quit},
+	{MODE, &Server::mode},
+	{KICK, &Server::kick},
+	{NOTICE, &Server::notice},
+	{TOPIC, &Server::topic},
+	{PING, &Server::ping},
+	{PONG, &Server::pong},
+	{AWAY, &Server::away}
 	// Extend this list when we have more functions
 };
 
@@ -187,7 +196,7 @@ void Server::receiveDataFromClient(int i)
 			"Client " + std::to_string(poll_fds_[i].fd) + " disconnected";
 		Logger::log(Logger::INFO, msg);
 		std::string quitMsg = rplQuit(usr->getNick(), usr->getUsername(),
-									  usr->getHost(), "Disconnected");
+									  usr->getHost(), "Client disconnect");
 		handleQuitServer(quitMsg, *usr);
 		return;
 	}
@@ -233,11 +242,10 @@ void Server::clearDisconnectedClients()
 
 void Server::executeCommand(Message& msg, User& usr)
 {
-	// if (!usr.isRegistered() && msg.getType() > 4) // commented out just
-	// for testing
-	// {
-	//	return;
-	// }
+	if (!usr.isRegistered() && msg.getType() > 4)
+	{
+		return;
+	}
 	std::map<COMMANDTYPE, executeFunc>::const_iterator it =
 		execute_map_.find(msg.getType());
 	if (it != execute_map_.end())
@@ -246,7 +254,8 @@ void Server::executeCommand(Message& msg, User& usr)
 	}
 	else
 	{
-		throw std::invalid_argument("Unsupported command");
+		usr.sendData(
+			errUnknownCommand(SERVER_NAME, usr.getNick(), msg.getRawType()));
 	}
 }
 
@@ -465,11 +474,11 @@ void Server::privmsg(Message& msg, User& usr)
 				{
 					std::string fullMsg =
 						rplPrivMsg(usr.getNick(), target, message);
-						if (!userPair.second.getAwayMsg().empty())
-						{
-							usr.sendData(rplAway(SERVER_NAME, usr.getNick(),
-								target, userPair.second.getAwayMsg()));
-						}
+					if (!userPair.second.getAwayMsg().empty())
+					{
+						usr.sendData(rplAway(SERVER_NAME, usr.getNick(), target,
+											 userPair.second.getAwayMsg()));
+					}
 					userPair.second.sendData(fullMsg);
 					found = true;
 					break;
@@ -621,13 +630,18 @@ void Server::quit(Message& msg, User& usr)
 
 void Server::handleQuitServer(std::string& quitMsg, User& usr)
 {
-	for (auto& chanPair : _channels)
+	auto it = _channels.begin();
+	while (it != _channels.end())
 	{
-		Channel& chan = chanPair.second;
-		if (chan.isUserInChannel(usr))
+		if (it->second.isUserInChannel(usr))
 		{
-			chan.broadcastToChannel(usr, quitMsg);
-			chan.removeUser(usr);
+			it->second.broadcastToChannel(usr, quitMsg);
+			it->second.removeUser(usr);
+			it = _channels.erase(it);
+		}
+		else
+		{
+			it++;
 		}
 	}
 
@@ -805,45 +819,54 @@ void Server::mode(Message& msg, User& usr)
 
 void Server::handleChannelMode(Message& msg, User& usr)
 {
-	std::vector<std::string> args = msg.getArgs();
-	// if (args.size() < 2)
-	// {
-	// 	usr.sendData(errNeedMoreParams(SERVER_NAME, usr.getNick(), "MODE"));
-	// 	return;
-	// }
-	std::string channelName = args[0];
-	std::string modes = args[1];
-
-	// If there’s a 3rd argument (like a limit or password), store it
-	std::string param = (args.size() >= 3) ? args[2] : "";
-
-	std::unordered_map<std::string, Channel>::iterator it =
-		_channels.find(channelName);
-	if (it == _channels.end())
+	if (msg.getArgs().size() < 1)
 	{
-		usr.sendData(errNoSuchChannel(SERVER_NAME, usr.getNick(), channelName));
+		usr.sendData(errNeedMoreParams(SERVER_NAME, usr.getNick(), "MODE"));
 		return;
 	}
 
-	Channel& chan = it->second;
-
-	if (!chan.isUserInChannel(usr))
+	else if (msg.getArgs().size() == 1)
 	{
-		usr.sendData(errNotOnChannel(SERVER_NAME, usr.getNick(), channelName));
-		return;
+		std::string channel_name{msg.getArgs()[0]};
+		auto it = _channels.find(channel_name);
+		if (it == _channels.end())
+		{
+			usr.sendData(
+				errNoSuchChannel(SERVER_NAME, usr.getNick(), channel_name));
+			return;
+		}
+		Channel& ch = it->second;
+		usr.sendData(rplChannelModeIs(SERVER_NAME, usr.getNick(), ch.getName(),
+									  ch.getChannelModes()));
 	}
-	if (!chan.isUserAnOperatorInChannel(usr))
+	else
 	{
-		usr.sendData(
-			errChanPrivsNeeded(SERVER_NAME, usr.getNick(), channelName));
-		return;
+		std::string channel_name{msg.getArgs()[0]};
+		std::string modes = {msg.getArgs()[1]};
+		// If there’s a 3rd argument (like a limit or password), store it
+		std::string param = (msg.getArgs().size() >= 3) ? msg.getArgs()[2] : "";
+		auto it = _channels.find(channel_name);
+		if (it == _channels.end())
+		{
+			usr.sendData(
+				errNoSuchChannel(SERVER_NAME, usr.getNick(), channel_name));
+			return;
+		}
+		Channel& ch = it->second;
+		if (!ch.isUserInChannel(usr))
+		{
+			usr.sendData(
+				errNotOnChannel(SERVER_NAME, usr.getNick(), channel_name));
+			return;
+		}
+		if (!ch.isUserAnOperatorInChannel(usr))
+		{
+			usr.sendData(
+				errChanPrivsNeeded(SERVER_NAME, usr.getNick(), channel_name));
+			return;
+		}
+		ch.applyChannelMode(usr, modes, param);
 	}
-	if (args.size() < 2)
-	{
-		usr.sendData(rplChannelModeIs(SERVER_NAME, usr.getNick(), chan.getName(), chan.getChannelModes()));
-		return;
-	}
-	chan.applyChannelMode(usr, modes, param);
 }
 
 void Server::handleUserMode(Message& msg, User& usr)
