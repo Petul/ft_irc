@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/25 07:28:58 by mpellegr         ###   ########.fr       */
+/*   Updated: 2025/02/25 11:55:04 by mpellegr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -121,7 +121,8 @@ void Server::initServer()
 								  std::to_string(this->server_port_));
 	poll_fds_.push_back({_serverSocket, POLLIN, 0});
 
-	signal(SIGINT, handleSignal);  //
+	signal(SIGINT, handleSignal);
+	signal(SIGQUIT, handleSignal);
 }
 
 void Server::startServer()
@@ -402,7 +403,7 @@ void Server::privmsg(Message& msg, User& usr)
 	/**/
 	/*✓	ERR_NORECIPIENT				✓ ERR_NOTEXTTOSEND*/
 	/*✓	ERR_CANNOTSENDTOCHAN		  ERR_NOTOPLEVEL*/
-	/*	ERR_WILDTOPLEVEL			  ERR_TOOMANYTARGETS*/
+	/*	ERR_WILDTOPLEVEL			✓ ERR_TOOMANYTARGETS*/
 	/*✓	ERR_NOSUCHNICK*/
 	/*✓	RPL_AWAY*/
 
@@ -422,6 +423,18 @@ void Server::privmsg(Message& msg, User& usr)
 	std::string message = args[1];
 	std::istringstream targetStream(targets);
 	std::string target;
+
+	int targetCount = 0;
+	while (std::getline(targetStream, targets, ','))
+	{
+		targetCount++;
+		if (targetCount > TARGETS_LIM_IN_ONE_COMMAND)
+		{
+			usr.sendData(errTooManyTargets(SERVER_NAME, usr.getNick()));
+			return;
+		}
+	}
+
 	while (std::getline(targetStream, target, ','))
 	{
 		if (target.empty())
@@ -487,7 +500,7 @@ void Server::join(Message& msg, User& usr)
 	/*		 ✓	ERR_INVITEONLYCHAN			✓  ERR_BADCHANNELKEY*/
 	/*		 ✓	ERR_CHANNELISFULL			   ERR_BADCHANMASK*/
 	/*		 ✓	ERR_NOSUCHCHANNEL			   ERR_TOOMANYCHANNELS*/
-	/*			ERR_TOOMANYTARGETS			   ERR_UNAVAILRESOURCE*/
+	/*		 ✓  ERR_TOOMANYTARGETS			   ERR_UNAVAILRESOURCE*/
 	/*		 ✓	RPL_TOPIC*/
 	if (msg.getArgs().empty())
 	{
@@ -502,6 +515,22 @@ void Server::join(Message& msg, User& usr)
 	std::istringstream channelStream(channelArg);
 	std::istringstream passwordStream(passwordArg);
 	std::string channelName, channelPassword;
+
+	int channelCount = 0;
+	while (std::getline(channelStream, channelName, ','))
+	{
+		channelCount++;
+		if (channelCount > TARGETS_LIM_IN_ONE_COMMAND)
+		{
+			usr.sendData(errTooManyTargets(SERVER_NAME, usr.getNick()));
+			return;
+		}
+	}
+
+	channelStream.clear();
+	channelStream.str(channelArg);
+	passwordStream.clear();
+	passwordStream.str(passwordArg);
 
 	while (std::getline(channelStream, channelName, ','))
 	{
