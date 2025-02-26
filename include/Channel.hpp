@@ -9,6 +9,7 @@
 #include <sstream>
 #include <string>
 #include <unordered_map>
+#include <algorithm>
 
 #include "Logger.hpp"
 #include "User.hpp"

@@ -1,4 +1,5 @@
 #include "Channel.hpp"
+#include <cctype>
 
 #include "Server.hpp"
 #include "replies.hpp"
@@ -486,10 +487,29 @@ void Channel::applyChannelMode(User& setter, const std::string& modes,
 			{
 				if (adding)
 				{
-					setUserLimit(std::stoi(param));
-					Logger::log(Logger::DEBUG, "User " + setter.getUsername() +
-												   "set channel limit to " +
-												   param + " users");
+					if (param.empty() || !std::all_of(param.begin(),
+								param.end(), ::isdigit))
+					{
+						Logger::log(Logger::DEBUG, "User " + setter.getUsername() +
+								" tried to change the channel limit to " + param +
+								" which is is not digit");
+						return;
+					}
+					try
+					{
+						int limit = std::stoi(param);
+						setUserLimit(limit);
+						Logger::log(Logger::DEBUG, "User " + setter.getUsername() +
+								"set channel limit to " +
+								param + " users");
+					}
+					catch (const std::exception &e)
+					{
+						Logger::log(Logger::DEBUG, "User " + setter.getUsername() +
+								" tried to change the channel limit to " + param +
+								" which caused an stoi exception");
+						return;
+					}
 				}
 				else
 				{
