@@ -1,9 +1,10 @@
 #include "Channel.hpp"
+#include <cctype>
 
 #include "Server.hpp"
 #include "replies.hpp"
 
-const std::string Channel::avail_channel_modes{"bitklo"};
+const std::string Channel::avail_channel_modes{"itklo"};
 
 Channel::Channel(std::string name, User& usr)
 	: _name(name),
@@ -301,7 +302,12 @@ void Channel::inviteUser(User& invitingUsr,
 						 std::unordered_map<int, User>& users_,
 						 std::string invitedUsrNickname)
 {
-	if (!this->isUserAnOperatorInChannel(invitingUsr))
+	if (!isUserInChannel(invitingUsr))
+	{
+		invitingUsr.sendData(errNotOnChannel(SERVER_NAME, invitingUsr.getNick(), _name));
+		return;
+	}
+	if (this->getInviteMode() && !this->isUserAnOperatorInChannel(invitingUsr))
 	{
 		invitingUsr.sendData(
 			errChanPrivsNeeded(SERVER_NAME, invitingUsr.getNick(), _name));
@@ -420,12 +426,7 @@ void Channel::applyChannelMode(User& setter, const std::string& modes,
 											   _name, std::string(1, c)));
 				return;
 			}
-			if (c == 'b')
-			{
-				setter.sendData(
-					rplEndOfBanList(SERVER_NAME, setter.getNick(), _name));
-			}
-			else if (c == 'i')
+			if (c == 'i')
 			{
 				if (adding)
 				{
@@ -486,10 +487,29 @@ void Channel::applyChannelMode(User& setter, const std::string& modes,
 			{
 				if (adding)
 				{
-					setUserLimit(std::stoi(param));
-					Logger::log(Logger::DEBUG, "User " + setter.getUsername() +
-												   "set channel limit to " +
-												   param + " users");
+					if (param.empty() || !std::all_of(param.begin(),
+								param.end(), ::isdigit))
+					{
+						Logger::log(Logger::DEBUG, "User " + setter.getUsername() +
+								" tried to change the channel limit to " + param +
+								" which is is not digit");
+						return;
+					}
+					try
+					{
+						int limit = std::stoi(param);
+						setUserLimit(limit);
+						Logger::log(Logger::DEBUG, "User " + setter.getUsername() +
+								"set channel limit to " +
+								param + " users");
+					}
+					catch (const std::exception &e)
+					{
+						Logger::log(Logger::DEBUG, "User " + setter.getUsername() +
+								" tried to change the channel limit to " + param +
+								" which caused an stoi exception");
+						return;
+					}
 				}
 				else
 				{
@@ -580,6 +600,7 @@ void Channel::applyChannelMode(User& setter, const std::string& modes,
 		rplChannelMode(setter.getNick(), setter.getUsername(), setter.getHost(),
 					   _name, modes, param);
 	broadcastToChannel(setter, modeChangeMsg);
+	setter.sendData(modeChangeMsg);
 }
 
 std::string Channel::getChannelModes() const
