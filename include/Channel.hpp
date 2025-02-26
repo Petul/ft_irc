@@ -81,4 +81,5 @@ class Channel
 						  const std::string& param);
 
 	std::string getChannelModes() const;
+	static const std::string avail_channel_modes;
 };
