@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/26 02:13:47 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/26 15:37:35 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -963,13 +963,28 @@ void Server::invite(Message& msg, User& usr)
 		usr.sendData(errNeedMoreParams(SERVER_NAME, usr.getNick(), "INVITE"));
 		return;
 	}
+	if (_channels.find(args[1]) == _channels.end())
+	{
+		for (auto user : users_)
+		{
+			if (user.second.getNick() == args[0])
+			{
+				usr.sendData(rplInviting(SERVER_NAME, usr.getNick(), args[0], args[1]));
+				user.second.sendData(":" + usr.getNick() + " INVITE " +
+						args[0] + " " + args[1] + "\r\n");
+				return;
+			}
+		}
+		usr.sendData(errNoSuchNick(SERVER_NAME, usr.getNick(), args[0]));
+		return;
+	}
 	try
 	{
 		_channels.at(args[1]).inviteUser(usr, users_, args[0]);
 	}
 	catch (std::exception& e)
 	{
-		usr.sendData(errNoSuchChannel(SERVER_NAME, usr.getNick(), args[0]));
+		//usr.sendData(errNoSuchChannel(SERVER_NAME, usr.getNick(), args[0]));
 	}
 }
 

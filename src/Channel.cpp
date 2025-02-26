@@ -299,7 +299,12 @@ void Channel::inviteUser(User& invitingUsr,
 						 std::unordered_map<int, User>& users_,
 						 std::string invitedUsrNickname)
 {
-	if (getInviteMode() && !this->isUserAnOperatorInChannel(invitingUsr))
+	if (!isUserInChannel(invitingUsr))
+	{
+		invitingUsr.sendData(errNotOnChannel(SERVER_NAME, invitingUsr.getNick(), _name));
+		return;
+	}
+	if (this->getInviteMode() && !this->isUserAnOperatorInChannel(invitingUsr))
 	{
 		invitingUsr.sendData(
 			errChanPrivsNeeded(SERVER_NAME, invitingUsr.getNick(), _name));
