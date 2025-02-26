@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 12:56:56 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/25 20:49:59 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/25 22:25:28 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,6 +56,11 @@ class User
 	void incUsrChannelCount();
 	void decUsrChannelCount();
 
+	void setMode(char mode);
+	void unsetMode(char mode);
+	bool hasMode(char mode) const;
+	std::string getModeString() const;
+
    private:
 	int sockfd_;
 	std::string recv_buf_;
@@ -69,4 +74,5 @@ class User
 	bool isOperator_;
 	std::string awayMsg_;
 	int usrChannelCount_;
+	std::string modes_;
 };

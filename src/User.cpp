@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 13:32:51 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/25 20:47:40 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/26 01:54:22 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -216,15 +216,47 @@ void User::decUsrChannelCount()
 	}
 }
 
+void User::setMode(char mode)
+{
+	if (modes_.find(mode) == std::string::npos)
+	{
+		modes_.push_back(mode);
+	}
+}
+
+void User::unsetMode(char mode)
+{
+	size_t pos;
+	while ((pos = modes_.find(mode)) != std::string::npos)
+	{
+		modes_.erase(pos, 1);
+	}
+}
+
+bool User::hasMode(char mode) const
+{
+	return (modes_.find(mode) != std::string::npos);
+}
+
+std::string User::getModeString() const
+{
+	if (!modes_.empty())
+	{
+		return ("+" + modes_);
+	}
+	return "";
+}
+
 // Away is set by some other setter function, this heavily depend on OPER being
 // implemented, so it's just a sketch with same format than applyChannelMode.
 void User::applyUserMode(User& setter, const std::string& modes,
 						 const std::string& param)
 {
+	// not sure do we need to bring parameters to this function, maybe we remove this.
+	(void)param;
 	if (modes.empty())
 	{
-		// maybe 221 RPL_UMODEIS
-		// setter.sendData(rplUmodeIs());
+		setter.sendData(rplUmodeIs(SERVER_NAME, setter.getNick(), setter.getModeString()));
 		return;
 	}
 
@@ -244,18 +276,50 @@ void User::applyUserMode(User& setter, const std::string& modes,
 		{
 			switch (c)
 			{
-				case 'i':  // invisible
+				case 'i':
+					if (adding)
+					{
+						setMode('i');
+					}
+					else
+					{
+						unsetMode('i');
+					}
 					break;
 				case 'w':  // what the heck even this is?
+					if (adding)
+					{
+						setMode('w');
+					}
+					else
+					{
+						unsetMode('w');
+					}
 					break;
-				case 'o':  // TODO need oper
-						   // if (!setter.isServerOperator()) >>
-						   // ERR_NOPRIVILEGES
+				case 'o':
+					if (adding)
+					{
+						if (!setter.getIsOperator()) 
+						{
+							setter.sendData(errNoPrivileges(SERVER_NAME, setter.getNick()));
+							return;
+						}
+						setMode('o');
+					}
+					else
+					{
+
+						if (setter.getIsOperator())
+						{
+							unsetMode('o');
+							isOperator_ = false;
+						}
+					}
 					break;
 				default:
 					setter.sendData(
 						errUnknownModeFlag(SERVER_NAME, setter.getNick()));
-					break;
+					return;
 			}
 		}
 	}

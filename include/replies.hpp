@@ -6,7 +6,7 @@
 /*   By: jmakkone <jmakkone@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/18 17:55:46 by jmakkone          #+#    #+#             */
-/*   Updated: 2025/02/25 18:20:08 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/26 02:11:09 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -315,6 +315,14 @@ inline std::string rplChannelMode(const std::string& nick,
 		   channelName + " " + modes + " " + params + "\r\n";
 }
 
+// 221 RPL_UMODEIS
+inline std::string rplUmodeIs(const std::string &serverName,
+                              const std::string &nick,
+                              const std::string &modeString)
+{
+    return ":" + serverName + " 221 " + nick + " " + modeString + "\r\n";
+}
+
 // ERR_KEYSET (467)
 // "Channel key already set"
 inline std::string errKeySet(const std::string& serverName,
@@ -333,6 +341,14 @@ inline std::string errNoChanModes(const std::string& serverName,
 {
 	return ":" + serverName + " 477 " + nick + " " + channel +
 		   " :Channel doesn't support modes\r\n";
+}
+
+// 481 ERR_NOPRIVILEGES
+inline std::string errNoPrivileges(const std::string &serverName,
+                                   const std::string &nick)
+{
+    return ":" + serverName + " 481 " + nick +
+           " :Permission Denied- You're not an IRC operator\r\n";
 }
 
 // ERR_CHANOPRIVSNEEDED (482)
