@@ -587,6 +587,7 @@ void Channel::applyChannelMode(User& setter, const std::string& modes,
 		rplChannelMode(setter.getNick(), setter.getUsername(), setter.getHost(),
 					   _name, modes, param);
 	broadcastToChannel(setter, modeChangeMsg);
+	setter.sendData(modeChangeMsg);
 }
 
 std::string Channel::getChannelModes() const
