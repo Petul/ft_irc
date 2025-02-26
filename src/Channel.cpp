@@ -419,10 +419,6 @@ void Channel::applyChannelMode(User& setter, const std::string& modes,
 		{
 			switch (c)
 			{
-				case 'b':
-					setter.sendData(
-						rplEndOfBanList(SERVER_NAME, setter.getNick(), _name));
-					break;
 				case 'i':
 					if (adding)
 					{
