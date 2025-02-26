@@ -23,12 +23,17 @@
 #include "Server.hpp"
 #include "sys/socket.h"
 
+const std::string User::avail_user_modes{"iwo"};
 User::User() : sockfd_{-1}
 {
 }
 
-User::User(int sockfd) : sockfd_{sockfd}, registered_{false},
-	isOperator_{false}, awayMsg_{""}, usrChannelCount_{0}
+User::User(int sockfd)
+	: sockfd_{sockfd},
+	  registered_{false},
+	  isOperator_{false},
+	  awayMsg_{""},
+	  usrChannelCount_{0}
 {
 	struct sockaddr_in addr;
 	socklen_t addr_len = sizeof(addr);
@@ -252,11 +257,13 @@ std::string User::getModeString() const
 void User::applyUserMode(User& setter, const std::string& modes,
 						 const std::string& param)
 {
-	// not sure do we need to bring parameters to this function, maybe we remove this.
+	// not sure do we need to bring parameters to this function, maybe we remove
+	// this.
 	(void)param;
 	if (modes.empty())
 	{
-		setter.sendData(rplUmodeIs(SERVER_NAME, setter.getNick(), setter.getModeString()));
+		setter.sendData(
+			rplUmodeIs(SERVER_NAME, setter.getNick(), setter.getModeString()));
 		return;
 	}
 
@@ -274,52 +281,54 @@ void User::applyUserMode(User& setter, const std::string& modes,
 		}
 		else
 		{
-			switch (c)
+			if (User::avail_user_modes.find(c) == std::string::npos)
 			{
-				case 'i':
-					if (adding)
+				setter.sendData(
+					errUnknownModeFlag(SERVER_NAME, setter.getNick()));
+				return;
+			}
+			else if (c == 'i')
+			{
+				if (adding)
+				{
+					setMode('i');
+				}
+				else
+				{
+					unsetMode('i');
+				}
+			}
+			else if (c == 'w')
+			{
+				if (adding)
+				{
+					setMode('w');
+				}
+				else
+				{
+					unsetMode('w');
+				}
+			}
+			else if (c == 'o')
+			{
+				if (adding)
+				{
+					if (!setter.getIsOperator())
 					{
-						setMode('i');
+						setter.sendData(
+							errNoPrivileges(SERVER_NAME, setter.getNick()));
+						return;
 					}
-					else
+					setMode('o');
+				}
+				else
+				{
+					if (setter.getIsOperator())
 					{
-						unsetMode('i');
+						unsetMode('o');
+						isOperator_ = false;
 					}
-					break;
-				case 'w':  // what the heck even this is?
-					if (adding)
-					{
-						setMode('w');
-					}
-					else
-					{
-						unsetMode('w');
-					}
-					break;
-				case 'o':
-					if (adding)
-					{
-						if (!setter.getIsOperator()) 
-						{
-							setter.sendData(errNoPrivileges(SERVER_NAME, setter.getNick()));
-							return;
-						}
-						setMode('o');
-					}
-					else
-					{
-
-						if (setter.getIsOperator())
-						{
-							unsetMode('o');
-							isOperator_ = false;
-						}
-					}
-					break;
-				default:
-					setter.sendData(
-						errUnknownModeFlag(SERVER_NAME, setter.getNick()));
-					return;
+				}
 			}
 		}
 	}

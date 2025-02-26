@@ -3,6 +3,8 @@
 #include "Server.hpp"
 #include "replies.hpp"
 
+const std::string Channel::avail_channel_modes{"bitklo"};
+
 Channel::Channel(std::string name, User& usr)
 	: _name(name),
 	  _isInviteOnly(false),
@@ -417,163 +419,158 @@ void Channel::applyChannelMode(User& setter, const std::string& modes,
 		}
 		else
 		{
-			switch (c)
+			if (avail_channel_modes.find(c) == std::string::npos)
 			{
-				case 'i':
-					if (adding)
+				setter.sendData(errUnknownMode(SERVER_NAME, setter.getNick(),
+											   _name, std::string(1, c)));
+				return;
+			}
+			if (c == 'i')
+			{
+				if (adding)
+				{
+					setInviteOnly();
+					Logger::log(Logger::DEBUG,
+								"user " + setter.getUsername() +
+									" set invite only mode ON in channel " +
+									_name);
+				}
+				else
+				{
+					unsetInviteOnly();
+					Logger::log(Logger::DEBUG,
+								"user " + setter.getUsername() +
+									" set invite only mode OFF in channel " +
+									_name);
+				}
+			}
+			else if (c == 't')
+			{
+				if (adding)
+				{
+					setRestrictionsOnTopic();
+					Logger::log(Logger::DEBUG,
+								"user " + setter.getUsername() +
+									" set restrictions on topic mode ON in "
+									"channel " +
+									_name);
+				}
+				else
+				{
+					unsetRestrictionsOnTopic();
+					Logger::log(Logger::DEBUG,
+								"user " + setter.getUsername() +
+									" set restrictions on topic mode OFF "
+									"in channel " +
+									_name);
+				}
+			}
+			else if (c == 'k')
+			{
+				if (adding)
+				{
+					setPassword(param);
+					Logger::log(Logger::DEBUG, "user " + setter.getUsername() +
+												   " set password in channel " +
+												   _name);
+				}
+				else
+				{
+					unsetPasword();
+					Logger::log(Logger::DEBUG,
+								"user " + setter.getUsername() +
+									" removed password in channel " + _name);
+				}
+			}
+			else if (c == 'l')
+			{
+				if (adding)
+				{
+					setUserLimit(std::stoi(param));
+					Logger::log(Logger::DEBUG, "User " + setter.getUsername() +
+												   "set channel limit to " +
+												   param + " users");
+				}
+				else
+				{
+					unsetUserLimit();
+					Logger::log(Logger::DEBUG, "User " + setter.getUsername() +
+												   "unset channel limit");
+				}
+			}
+			else if (c == 'o')
+			{
+				if (!param.empty())
+				{
+					bool foundUser = false;
+					for (auto user : _users)
 					{
-						setInviteOnly();
-						Logger::log(Logger::DEBUG,
-									"user " + setter.getUsername() +
-										" set invite only mode ON in channel " +
-										_name);
-					}
-					else
-					{
-						unsetInviteOnly();
-						Logger::log(
-							Logger::DEBUG,
-							"user " + setter.getUsername() +
-								" set invite only mode OFF in channel " +
-								_name);
-					}
-					break;
-				case 't':
-					if (adding)
-					{
-						setRestrictionsOnTopic();
-						Logger::log(Logger::DEBUG,
-									"user " + setter.getUsername() +
-										" set restrictions on topic mode ON in "
-										"channel " +
-										_name);
-					}
-					else
-					{
-						unsetRestrictionsOnTopic();
-						Logger::log(Logger::DEBUG,
-									"user " + setter.getUsername() +
-										" set restrictions on topic mode OFF "
-										"in channel " +
-										_name);
-					}
-					break;
-				case 'k':
-					if (adding)
-					{
-						setPassword(param);
-						Logger::log(Logger::DEBUG,
-									"user " + setter.getUsername() +
-										" set password in channel " + _name);
-					}
-					else
-					{
-						unsetPasword();
-						Logger::log(Logger::DEBUG,
-									"user " + setter.getUsername() +
-										" removed password in channel " +
-										_name);
-					}
-					break;
-				case 'l':
-					if (adding)
-					{
-						setUserLimit(std::stoi(param));
-						Logger::log(Logger::DEBUG, "User " +
-													   setter.getUsername() +
-													   "set channel limit to " +
-													   param + " users");
-					}
-					else
-					{
-						unsetUserLimit();
-						Logger::log(Logger::DEBUG, "User " +
-													   setter.getUsername() +
-													   "unset channel limit");
-					}
-					break;
-				case 'o':
-					if (!param.empty())
-					{
-						bool foundUser = false;
-						for (auto user : _users)
+						User* targetUser = user;
+
+						if (targetUser->getNick() == param)
 						{
-							User* targetUser = user;
+							foundUser = true;
 
-							if (targetUser->getNick() == param)
+							if (adding)
 							{
-								foundUser = true;
-
-								if (adding)
+								if (isUserInChannel(*targetUser))
 								{
-									if (isUserInChannel(*targetUser))
-									{
-										addOperator(*targetUser);
-										Logger::log(
-											Logger::DEBUG,
-											"User " + setter.getUsername() +
-												" gave channel-operator "
-												"privilege on " +
-												_name + " to user " +
-												targetUser->getUsername());
-									}
-									else
-									{
-										setter.sendData(errUserNotInChannel(
-											SERVER_NAME, setter.getNick(),
-											_name));
-										Logger::log(
-											Logger::DEBUG,
-											"Tried to +o " +
-												targetUser->getUsername() +
-												" but they're not in channel " +
-												_name);
-									}
+									addOperator(*targetUser);
+									Logger::log(Logger::DEBUG,
+												"User " + setter.getUsername() +
+													" gave channel-operator "
+													"privilege on " +
+													_name + " to user " +
+													targetUser->getUsername());
 								}
 								else
 								{
-									if (isUserAnOperatorInChannel(*targetUser))
-									{
-										removeOperator(*targetUser);
-										Logger::log(
-											Logger::DEBUG,
-											"User " + setter.getUsername() +
-												" revoked operator privilege "
-												"on " +
-												_name + " from user " +
-												targetUser->getUsername());
-									}
-									else
-									{
-										Logger::log(
-											Logger::DEBUG,
-											"Tried to -o user " +
-												targetUser->getUsername() +
-												" who was not a channel "
-												"operator in " +
-												_name);
-									}
+									setter.sendData(errUserNotInChannel(
+										SERVER_NAME, setter.getNick(), _name));
+									Logger::log(
+										Logger::DEBUG,
+										"Tried to +o " +
+											targetUser->getUsername() +
+											" but they're not in channel " +
+											_name);
 								}
-								break;
 							}
+							else
+							{
+								if (isUserAnOperatorInChannel(*targetUser))
+								{
+									removeOperator(*targetUser);
+									Logger::log(
+										Logger::DEBUG,
+										"User " + setter.getUsername() +
+											" revoked operator privilege "
+											"on " +
+											_name + " from user " +
+											targetUser->getUsername());
+								}
+								else
+								{
+									Logger::log(Logger::DEBUG,
+												"Tried to -o user " +
+													targetUser->getUsername() +
+													" who was not a channel "
+													"operator in " +
+													_name);
+								}
+							}
+							break;
 						}
-						if (!foundUser)
-						{
-							setter.sendData(errNoSuchNick(
-								SERVER_NAME, setter.getNick(), param));
-							Logger::log(
-								Logger::DEBUG,
-								"MODE +o: Could not find user with nick '" +
-									param + "'");
-						}
-						break;
+					}
+					if (!foundUser)
+					{
+						setter.sendData(errNoSuchNick(SERVER_NAME,
+													  setter.getNick(), param));
+						Logger::log(Logger::DEBUG,
+									"MODE +o: Could not find user with nick '" +
+										param + "'");
 					}
 					break;
-				default:
-					setter.sendData(errUnknownMode(SERVER_NAME,
-												   setter.getNick(), _name,
-												   std::string(1, c)));
-					break;
+				}
 			}
 		}
 		i++;

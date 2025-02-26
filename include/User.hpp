@@ -61,6 +61,8 @@ class User
 	bool hasMode(char mode) const;
 	std::string getModeString() const;
 
+	static const std::string avail_user_modes;
+
    private:
 	int sockfd_;
 	std::string recv_buf_;

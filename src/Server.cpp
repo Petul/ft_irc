@@ -370,7 +370,8 @@ void Server::attemptRegistration(User& usr)
 		usr.sendData(rplCreated(SERVER_NAME, usr.getNick(),
 								"today"));  // maybe we need date.
 		usr.sendData(rplMyInfo(SERVER_NAME, usr.getNick(), SERVER_VER,
-							   "usr.getModes()", "getChannelModes()"));
+							   User::avail_user_modes,
+							   Channel::avail_channel_modes));
 	}
 	else
 	{
@@ -435,20 +436,22 @@ void Server::privmsg(Message& msg, User& usr)
 
 	while (std::getline(targetStream, target, ','))
 	{
-		if (target.empty()) 
+		if (target.empty())
 		{
 			continue;
 		}
 		targetCount++;
 		if (targetCount > TARGETS_LIM_IN_ONE_COMMAND)
 		{
-			usr.sendData(errTooManyTargets(SERVER_NAME, usr.getNick(), "Too many targets."));
+			usr.sendData(errTooManyTargets(SERVER_NAME, usr.getNick(),
+										   "Too many targets."));
 			return;
 		}
 		if (!usedTargets.insert(target).second)
 		{
-			usr.sendData(errTooManyTargets(SERVER_NAME, usr.getNick(),
-						"Duplicate recipients. No message delivered"));
+			usr.sendData(errTooManyTargets(
+				SERVER_NAME, usr.getNick(),
+				"Duplicate recipients. No message delivered"));
 			return;
 		}
 		allTargets.push_back(target);
@@ -541,7 +544,8 @@ void Server::join(Message& msg, User& usr)
 		channelCount++;
 		if (channelCount > TARGETS_LIM_IN_ONE_COMMAND)
 		{
-			usr.sendData(errTooManyTargets(SERVER_NAME, usr.getNick(), "Too many targets."));
+			usr.sendData(errTooManyTargets(SERVER_NAME, usr.getNick(),
+										   "Too many targets."));
 			return;
 		}
 	}
@@ -572,7 +576,7 @@ void Server::join(Message& msg, User& usr)
 		if (usr.getUsrChannelCount() >= USR_CHANNEL_LIMIT)
 		{
 			usr.sendData(errTooManyChannels(SERVER_NAME, usr.getNick()));
-			throw (std::invalid_argument("User channel limit reached"));
+			throw(std::invalid_argument("User channel limit reached"));
 		}
 
 		std::unordered_map<std::string, Channel>::iterator it =
@@ -581,8 +585,9 @@ void Server::join(Message& msg, User& usr)
 		{
 			if (_channels.size() >= SERVER_CHANNEL_LIMIT)
 			{
-				usr.sendData(errTooManyTargets(SERVER_NAME, usr.getNick(), "Server channel limit reached"));
-				throw (std::invalid_argument("Server channel limit reached"));
+				usr.sendData(errTooManyTargets(SERVER_NAME, usr.getNick(),
+											   "Server channel limit reached"));
+				throw(std::invalid_argument("Server channel limit reached"));
 			}
 			Channel newChannel(channelName, usr);
 			if (!channelPassword.empty())
