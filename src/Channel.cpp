@@ -3,7 +3,7 @@
 #include "Server.hpp"
 #include "replies.hpp"
 
-const std::string Channel::avail_channel_modes{"bitklo"};
+const std::string Channel::avail_channel_modes{"itklo"};
 
 Channel::Channel(std::string name, User& usr)
 	: _name(name),
