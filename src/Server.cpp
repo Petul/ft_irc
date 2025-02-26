@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/26 02:09:35 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/26 02:13:47 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,6 +64,11 @@ Server::~Server()
 
 void Server::handleSignal(int signum)
 {
+	// Dont kill the server for SIGPIPE
+	if (signum == 13)
+	{
+		return;
+	}
 	static_cast<void>(signum);
 
 	Logger::log(Logger::INFO, "Server shutting down. Goodbye..");
@@ -121,6 +126,7 @@ void Server::initServer()
 								  std::to_string(this->server_port_));
 	poll_fds_.push_back({_serverSocket, POLLIN, 0});
 
+	signal(SIGPIPE, handleSignal);
 	signal(SIGINT, handleSignal);
 	signal(SIGQUIT, handleSignal);
 }
