@@ -208,10 +208,6 @@ void Channel::joinUser(const std::string& serverName, User& usr,
 	}
 
 	addUser(usr);
-	if (usr.getIsIrcOperator())
-	{
-		addOperator(usr);
-	}
 	usr.incUsrChannelCount();
 	std::string joinMsg =
 		rplJoin(usr.getNick(), usr.getUsername(), usr.getHost(), _name);
@@ -226,6 +222,10 @@ void Channel::joinUser(const std::string& serverName, User& usr,
 	else
 	{
 		usr.sendData(rplTopic(serverName, usr.getNick(), _name, _topic));
+	}
+	if (usr.getIsIrcOperator())
+	{
+		applyChannelMode(usr, "+o", usr.getNick());
 	}
 	printNames(usr);
 }
@@ -278,8 +278,8 @@ void Channel::kickUser(User& source, std::string targetUsername,
 	}
 	if (targetUser->getIsIrcOperator())
 	{
-		source.sendData(
-			errChanPrivsNeeded(SERVER_NAME, source.getNick(), _name));
+		source.sendData(std::string(":") + SERVER_NAME + " "
+				+ _name + ": Cannot kick an IRC operator\r\n");
 		return;
 	}
 
@@ -616,11 +616,7 @@ void Channel::printNames(User& usr)
 		 ++it)
 	{
 		User* u = *it;
-		if (u->getIsIrcOperator())
-		{
-			nameList += "*" + u->getNick() + " ";
-		}
-		else if (isUserAnOperatorInChannel(*u))
+		if (isUserAnOperatorInChannel(*u))
 		{
 			nameList += "@" + u->getNick() + " ";
 		}
