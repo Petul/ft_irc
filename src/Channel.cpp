@@ -180,13 +180,13 @@ void Channel::displayChannelMessage(User& sender, std::string msg)
 void Channel::joinUser(const std::string& serverName, User& usr,
 					   const std::string& attemptedPassword)
 {
-	if (_isInviteOnly && !isUserInvited(usr))
+	if (_isInviteOnly && !isUserInvited(usr) && !usr.getIsIrcOperator())
 	{
 		usr.sendData(errInviteOnlyChan(serverName, usr.getNick(), _name));
 		return;
 	}
 
-	if (!_password.empty() && attemptedPassword != _password)
+	if (!_password.empty() && attemptedPassword != _password && !usr.getIsIrcOperator())
 	{
 		usr.sendData(errBadChannelKey(serverName, usr.getNick(), _name));
 		Logger::log(Logger::WARNING,
@@ -197,7 +197,7 @@ void Channel::joinUser(const std::string& serverName, User& usr,
 		return;
 	}
 
-	if (getUserCount() >= _userLimit)
+	if (getUserCount() >= _userLimit && !usr.getIsIrcOperator())
 	{
 		usr.sendData(errChannelIsFull(serverName, usr.getNick(), _name));
 		std::string msg = "Can't add user " + std::to_string(usr.getSocket()) +
@@ -208,6 +208,10 @@ void Channel::joinUser(const std::string& serverName, User& usr,
 	}
 
 	addUser(usr);
+	if (usr.getIsIrcOperator())
+	{
+		addOperator(usr);
+	}
 	usr.incUsrChannelCount();
 	std::string joinMsg =
 		rplJoin(usr.getNick(), usr.getUsername(), usr.getHost(), _name);
@@ -285,6 +289,12 @@ void Channel::kickUser(User& source, std::string targetUsername,
 	if (!targetUser)
 	{
 		source.sendData(errNotOnChannel(SERVER_NAME, source.getNick(), _name));
+		return;
+	}
+	if (targetUser->getIsIrcOperator())
+	{
+		source.sendData(
+			errChanPrivsNeeded(SERVER_NAME, source.getNick(), _name));
 		return;
 	}
 
