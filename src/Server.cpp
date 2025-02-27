@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <csignal>
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <stdexcept>
@@ -844,9 +845,10 @@ void Server::invite(Message& msg, User& usr)
 		{
 			if (user.second.getNick() == args[0])
 			{
-				usr.sendData(rplInviting(SERVER_NAME, usr.getNick(), args[0], args[1]));
+				usr.sendData(
+					rplInviting(SERVER_NAME, usr.getNick(), args[0], args[1]));
 				user.second.sendData(":" + usr.getNick() + " INVITE " +
-						args[0] + " " + args[1] + "\r\n");
+									 args[0] + " " + args[1] + "\r\n");
 				return;
 			}
 		}
@@ -859,7 +861,7 @@ void Server::invite(Message& msg, User& usr)
 	}
 	catch (std::exception& e)
 	{
-		//usr.sendData(errNoSuchChannel(SERVER_NAME, usr.getNick(), args[0]));
+		// usr.sendData(errNoSuchChannel(SERVER_NAME, usr.getNick(), args[0]));
 	}
 }
 

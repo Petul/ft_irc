@@ -10,8 +10,6 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include <stdlib.h>
-
 #include <cctype>
 #include <stdexcept>
 
@@ -27,7 +25,7 @@ int main(int argc, char** argv)
 	if (argc != 3)
 	{
 		print_usage();
-		exit(0);
+		return (0);
 	}
 	try
 	{
@@ -59,5 +57,5 @@ int main(int argc, char** argv)
 		std::cerr << e.what() << std::endl;
 		print_usage();
 	}
-	exit(0);
+	return (0);
 }
