@@ -14,6 +14,7 @@
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
 #include <stdexcept>
@@ -56,8 +57,8 @@ User::User(int sockfd)
 int User::receiveData()
 {
 	std::string buf(512, 0);
-	int n_bytes =
-		recv(this->sockfd_, const_cast<char*>(buf.data()), buf.size(), 0);
+	int n_bytes = recv(this->sockfd_, const_cast<char*>(buf.data()), buf.size(),
+					   MSG_DONTWAIT);
 	// Client closed the connection
 	if (n_bytes == 0)
 	{
@@ -117,7 +118,7 @@ int User::getNextMessage(std::string& buf)
  */
 int User::sendData(const std::string& buf)
 {
-	int n_bytes = write(this->sockfd_, buf.c_str(), buf.length());
+	int n_bytes = send(this->sockfd_, buf.c_str(), buf.length(), MSG_DONTWAIT);
 	if (n_bytes < 0)
 	{
 		Logger::log(Logger::WARNING,
