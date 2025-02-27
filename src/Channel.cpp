@@ -616,12 +616,19 @@ void Channel::printNames(User& usr)
 		 ++it)
 	{
 		User* u = *it;
-		if (isUserAnOperatorInChannel(*u))
+		if (u->getIsIrcOperator())
+		{
+			nameList += "*" + u->getNick() + " ";
+		}
+		else if (isUserAnOperatorInChannel(*u))
+		{
 			nameList += "@" + u->getNick() + " ";
+		}
 		else
+		{
 			nameList += u->getNick() + " ";
+		}
 	}
-
 	// RPL_NAMREPLY(353)
 	usr.sendData(rplNamReply(SERVER_NAME, usr.getNick(), "=", _name, nameList));
 	// RPL_ENDOFNAMES(366)

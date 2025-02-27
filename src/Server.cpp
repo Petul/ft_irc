@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/27 15:46:41 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/27 18:16:14 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -1026,20 +1026,47 @@ void Server::away(Message& msg, User& usr)
 
 void Server::names(Message& msg, User& usr)
 {
-	std::vector<std::string> args = msg.getArgs();
-	if (args.size() < 2)
-	{
-	}
-	std::string channelName, channelList = args[0];
-	std::istringstream channelStream(channelList);
-	while (std::getline(channelStream, channelName, ','))
-	{
-		for (auto ch : _channels)
-		{
-			if (ch.second.getName() == channelName)
-			{
-				ch.second.printNames(usr);
-			}
-		}
-	}
+    std::vector<std::string> args = msg.getArgs();
+    
+    if (args.empty())
+    {
+        for (auto& chPair : _channels)
+        {
+            chPair.second.printNames(usr);
+        }
+        
+        std::string lonelyUsers;
+        for (auto& userPair : users_)
+        {
+            User& u = userPair.second;
+            if (u.getUsrChannelCount() == 0 && !u.hasMode('i'))
+            {
+                lonelyUsers += u.getNick() + " ";
+            }
+        }
+        if (!lonelyUsers.empty())
+        {
+            usr.sendData(rplNamReply(SERVER_NAME, usr.getNick(), "=", "*", lonelyUsers));
+            usr.sendData(rplEndOfNames(SERVER_NAME, usr.getNick(), "*"));
+        }
+        return;
+    }
+    
+    std::string channelList = args[0];
+    std::istringstream channelStream(channelList);
+    std::string channelName;
+    
+    while (std::getline(channelStream, channelName, ','))
+    {
+        auto it = _channels.find(channelName);
+        if (it != _channels.end())
+        {
+            it->second.printNames(usr);
+        }
+        else
+        {
+            usr.sendData(rplNamReply(SERVER_NAME, usr.getNick(), "=", channelName, ""));
+            usr.sendData(rplEndOfNames(SERVER_NAME, usr.getNick(), channelName));
+        }
+    }
 }
