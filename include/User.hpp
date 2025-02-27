@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 12:56:56 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/25 22:25:28 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/27 11:37:42 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,8 +43,8 @@ class User
 	void registerUser();
 	bool isRegistered();
 
-	void setIsOperator();
-	bool getIsOperator();
+	void setIsIrcOperator();
+	bool getIsIrcOperator();
 
 	void applyUserMode(User& setter, const std::string& modes,
 					   const std::string& param);
@@ -73,7 +73,7 @@ class User
 	std::string realname_;
 	std::string nick_;
 	std::string host_;
-	bool isOperator_;
+	bool isIrcOperator_;
 	std::string awayMsg_;
 	int usrChannelCount_;
 	std::string modes_;
