@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/26 16:12:22 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/27 11:39:23 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -400,7 +400,7 @@ void Server::oper(Message& msg, User& usr)
 		return;
 	}
 
-	usr.setIsOperator();
+	usr.setIsIrcOperator();
 	usr.sendData(rplYoureOper(SERVER_NAME, usr.getNick()));
 }
 
@@ -977,7 +977,7 @@ void Server::whois(Message& msg, User& usr)
 							 user.second.getUsername(), user.second.getHost(),
 							 user.second.getRealname()));
 
-			if (user.second.getIsOperator())
+			if (user.second.getIsIrcOperator())
 			{
 				usr.sendData(rplWhoisOperator(SERVER_NAME, usr.getNick(),
 											  user.second.getNick()));

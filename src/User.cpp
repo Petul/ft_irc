@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/14 13:32:51 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/26 01:54:22 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/27 11:40:19 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,7 +31,7 @@ User::User() : sockfd_{-1}
 User::User(int sockfd)
 	: sockfd_{sockfd},
 	  registered_{false},
-	  isOperator_{false},
+	  isIrcOperator_{false},
 	  awayMsg_{""},
 	  usrChannelCount_{0}
 {
@@ -193,14 +193,14 @@ void User::setRealName(std::string& realname)
 	realname_ = realname;
 }
 
-void User::setIsOperator()
+void User::setIsIrcOperator()
 {
-	isOperator_ = true;
+	isIrcOperator_ = true;
 }
 
-bool User::getIsOperator()
+bool User::getIsIrcOperator()
 {
-	return (isOperator_);
+	return (isIrcOperator_);
 }
 
 int User::getUsrChannelCount()
@@ -313,7 +313,7 @@ void User::applyUserMode(User& setter, const std::string& modes,
 			{
 				if (adding)
 				{
-					if (!setter.getIsOperator())
+					if (!setter.getIsIrcOperator())
 					{
 						setter.sendData(
 							errNoPrivileges(SERVER_NAME, setter.getNick()));
@@ -323,10 +323,10 @@ void User::applyUserMode(User& setter, const std::string& modes,
 				}
 				else
 				{
-					if (setter.getIsOperator())
+					if (setter.getIsIrcOperator())
 					{
 						unsetMode('o');
-						isOperator_ = false;
+						isIrcOperator_ = false;
 					}
 				}
 			}
