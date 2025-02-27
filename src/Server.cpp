@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/27 11:39:23 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/27 15:46:41 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,8 +20,10 @@
 
 #include <algorithm>
 #include <csignal>
+#include <cstdio>
 #include <cstring>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 #include <vector>
 
@@ -94,7 +96,8 @@ const std::map<COMMANDTYPE, Server::executeFunc> Server::execute_map_ = {
 	{TOPIC, &Server::topic},
 	{PING, &Server::ping},
 	{PONG, &Server::pong},
-	{AWAY, &Server::away}
+	{AWAY, &Server::away},
+	{NAMES, &Server::names}
 	// Extend this list when we have more functions
 };
 
@@ -1019,4 +1022,24 @@ void Server::away(Message& msg, User& usr)
 {
 	std::vector<std::string> args = msg.getArgs();
 	usr.setAwayMsg(!args.empty() ? args[0] : "");
+}
+
+void Server::names(Message& msg, User& usr)
+{
+	std::vector<std::string> args = msg.getArgs();
+	if (args.size() < 2)
+	{
+	}
+	std::string channelName, channelList = args[0];
+	std::istringstream channelStream(channelList);
+	while (std::getline(channelStream, channelName, ','))
+	{
+		for (auto ch : _channels)
+		{
+			if (ch.second.getName() == channelName)
+			{
+				ch.second.printNames(usr);
+			}
+		}
+	}
 }

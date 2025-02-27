@@ -227,22 +227,7 @@ void Channel::joinUser(const std::string& serverName, User& usr,
 	{
 		usr.sendData(rplTopic(serverName, usr.getNick(), _name, _topic));
 	}
-
-	std::string nameList;
-	for (std::set<User*>::iterator it = _users.begin(); it != _users.end();
-		 ++it)
-	{
-		User* u = *it;
-		if (isUserAnOperatorInChannel(*u))
-			nameList += "@" + u->getNick() + " ";
-		else
-			nameList += u->getNick() + " ";
-	}
-
-	// RPL_NAMREPLY(353)
-	usr.sendData(rplNamReply(serverName, usr.getNick(), "=", _name, nameList));
-	// RPL_ENDOFNAMES(366)
-	usr.sendData(rplEndOfNames(serverName, usr.getNick(), _name));
+	printNames(usr);
 }
 
 void Channel::partUser(User& usr, const std::string& partMessage)
@@ -622,4 +607,23 @@ std::string Channel::getChannelModes() const
 	if (!_password.empty()) modes += "k";
 	if (!modes.empty()) modes = "+" + modes;
 	return modes;
+}
+
+void Channel::printNames(User& usr)
+{
+	std::string nameList;
+	for (std::set<User*>::iterator it = _users.begin(); it != _users.end();
+		 ++it)
+	{
+		User* u = *it;
+		if (isUserAnOperatorInChannel(*u))
+			nameList += "@" + u->getNick() + " ";
+		else
+			nameList += u->getNick() + " ";
+	}
+
+	// RPL_NAMREPLY(353)
+	usr.sendData(rplNamReply(SERVER_NAME, usr.getNick(), "=", _name, nameList));
+	// RPL_ENDOFNAMES(366)
+	usr.sendData(rplEndOfNames(SERVER_NAME, usr.getNick(), _name));
 }
