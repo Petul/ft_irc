@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/27 18:16:14 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/28 02:52:27 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -78,6 +78,7 @@ void Server::handleSignal(int signum)
 	_server->~Server();
 	exit(0);
 }
+
 const std::map<COMMANDTYPE, Server::executeFunc> Server::execute_map_ = {
 	{PASS, &Server::pass},
 	{NICK, &Server::nick},

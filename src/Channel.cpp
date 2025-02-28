@@ -148,11 +148,9 @@ void Channel::addUser(User& usr)
 
 void Channel::removeUser(User& usr)
 {
-	auto it = _users.find(&usr);
-	if (it != _users.end()) _users.erase(it);
-	// Do we remove users from these as well?
-	//_operators.erase(user);
-	//_invitedUsers.erase(user);
+	_users.erase(&usr);
+	_invitedUsers.erase(&usr);
+	_operators.erase(&usr);
 }
 
 void Channel::broadcastToChannel(User& usr, const std::string& message)
