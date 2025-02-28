@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/28 02:52:27 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/28 04:43:25 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,7 @@
 
 #include <algorithm>
 #include <csignal>
-#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <sstream>
@@ -848,9 +848,10 @@ void Server::invite(Message& msg, User& usr)
 		{
 			if (user.second.getNick() == args[0])
 			{
-				usr.sendData(rplInviting(SERVER_NAME, usr.getNick(), args[0], args[1]));
+				usr.sendData(
+					rplInviting(SERVER_NAME, usr.getNick(), args[0], args[1]));
 				user.second.sendData(":" + usr.getNick() + " INVITE " +
-						args[0] + " " + args[1] + "\r\n");
+									 args[0] + " " + args[1] + "\r\n");
 				return;
 			}
 		}
@@ -863,7 +864,7 @@ void Server::invite(Message& msg, User& usr)
 	}
 	catch (std::exception& e)
 	{
-		//usr.sendData(errNoSuchChannel(SERVER_NAME, usr.getNick(), args[0]));
+		// usr.sendData(errNoSuchChannel(SERVER_NAME, usr.getNick(), args[0]));
 	}
 }
 
