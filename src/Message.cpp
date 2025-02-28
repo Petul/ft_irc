@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/17 08:06:20 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/25 06:46:55 by mpellegr         ###   ########.fr       */
+/*   Updated: 2025/02/27 15:02:07 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,7 +29,8 @@ const std::map<std::string, COMMANDTYPE> Message::command_map_ = {
 	{"PART", PART},   {"INVITE", INVITE},   {"WHO", WHO},
 	{"WHOIS", WHOIS}, {"QUIT", QUIT},       {"MODE", MODE},
 	{"KICK", KICK},   {"NOTICE", NOTICE},   {"TOPIC", TOPIC},
-	{"PING", PING},   {"PONG", PONG},       {"AWAY", AWAY}};
+	{"PING", PING},   {"PONG", PONG},       {"AWAY", AWAY},
+	{"NAMES", NAMES}};
 
 std::string& Message::getRawType()
 {

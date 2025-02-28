@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/27 11:39:23 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/28 04:43:25 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,6 +23,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 #include <vector>
 
@@ -77,6 +78,7 @@ void Server::handleSignal(int signum)
 	_server->~Server();
 	exit(0);
 }
+
 const std::map<COMMANDTYPE, Server::executeFunc> Server::execute_map_ = {
 	{PASS, &Server::pass},
 	{NICK, &Server::nick},
@@ -95,7 +97,8 @@ const std::map<COMMANDTYPE, Server::executeFunc> Server::execute_map_ = {
 	{TOPIC, &Server::topic},
 	{PING, &Server::ping},
 	{PONG, &Server::pong},
-	{AWAY, &Server::away}
+	{AWAY, &Server::away},
+	{NAMES, &Server::names}
 	// Extend this list when we have more functions
 };
 
@@ -1021,4 +1024,51 @@ void Server::away(Message& msg, User& usr)
 {
 	std::vector<std::string> args = msg.getArgs();
 	usr.setAwayMsg(!args.empty() ? args[0] : "");
+}
+
+void Server::names(Message& msg, User& usr)
+{
+    std::vector<std::string> args = msg.getArgs();
+    
+    if (args.empty())
+    {
+        for (auto& chPair : _channels)
+        {
+            chPair.second.printNames(usr);
+        }
+        
+        std::string lonelyUsers;
+        for (auto& userPair : users_)
+        {
+            User& u = userPair.second;
+            if (u.getUsrChannelCount() == 0 && !u.hasMode('i'))
+            {
+                lonelyUsers += u.getNick() + " ";
+            }
+        }
+        if (!lonelyUsers.empty())
+        {
+            usr.sendData(rplNamReply(SERVER_NAME, usr.getNick(), "=", "*", lonelyUsers));
+            usr.sendData(rplEndOfNames(SERVER_NAME, usr.getNick(), "*"));
+        }
+        return;
+    }
+    
+    std::string channelList = args[0];
+    std::istringstream channelStream(channelList);
+    std::string channelName;
+    
+    while (std::getline(channelStream, channelName, ','))
+    {
+        auto it = _channels.find(channelName);
+        if (it != _channels.end())
+        {
+            it->second.printNames(usr);
+        }
+        else
+        {
+            usr.sendData(rplNamReply(SERVER_NAME, usr.getNick(), "=", channelName, ""));
+            usr.sendData(rplEndOfNames(SERVER_NAME, usr.getNick(), channelName));
+        }
+    }
 }

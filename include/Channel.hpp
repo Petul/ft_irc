@@ -82,5 +82,6 @@ class Channel
 						  const std::string& param);
 
 	std::string getChannelModes() const;
+	void printNames(User& usr);
 	static const std::string avail_channel_modes;
 };

@@ -148,11 +148,9 @@ void Channel::addUser(User& usr)
 
 void Channel::removeUser(User& usr)
 {
-	auto it = _users.find(&usr);
-	if (it != _users.end()) _users.erase(it);
-	// Do we remove users from these as well?
-	//_operators.erase(user);
-	//_invitedUsers.erase(user);
+	_users.erase(&usr);
+	_invitedUsers.erase(&usr);
+	_operators.erase(&usr);
 }
 
 void Channel::broadcastToChannel(User& usr, const std::string& message)
@@ -208,10 +206,6 @@ void Channel::joinUser(const std::string& serverName, User& usr,
 	}
 
 	addUser(usr);
-	if (usr.getIsIrcOperator())
-	{
-		addOperator(usr);
-	}
 	usr.incUsrChannelCount();
 	std::string joinMsg =
 		rplJoin(usr.getNick(), usr.getUsername(), usr.getHost(), _name);
@@ -227,22 +221,11 @@ void Channel::joinUser(const std::string& serverName, User& usr,
 	{
 		usr.sendData(rplTopic(serverName, usr.getNick(), _name, _topic));
 	}
-
-	std::string nameList;
-	for (std::set<User*>::iterator it = _users.begin(); it != _users.end();
-		 ++it)
+	if (usr.getIsIrcOperator())
 	{
-		User* u = *it;
-		if (isUserAnOperatorInChannel(*u))
-			nameList += "@" + u->getNick() + " ";
-		else
-			nameList += u->getNick() + " ";
+		applyChannelMode(usr, "+o", usr.getNick());
 	}
-
-	// RPL_NAMREPLY(353)
-	usr.sendData(rplNamReply(serverName, usr.getNick(), "=", _name, nameList));
-	// RPL_ENDOFNAMES(366)
-	usr.sendData(rplEndOfNames(serverName, usr.getNick(), _name));
+	printNames(usr);
 }
 
 void Channel::partUser(User& usr, const std::string& partMessage)
@@ -293,8 +276,8 @@ void Channel::kickUser(User& source, std::string targetUsername,
 	}
 	if (targetUser->getIsIrcOperator())
 	{
-		source.sendData(
-			errChanPrivsNeeded(SERVER_NAME, source.getNick(), _name));
+		source.sendData(std::string(":") + SERVER_NAME + " "
+				+ _name + ": Cannot kick an IRC operator\r\n");
 		return;
 	}
 
@@ -622,4 +605,26 @@ std::string Channel::getChannelModes() const
 	if (!_password.empty()) modes += "k";
 	if (!modes.empty()) modes = "+" + modes;
 	return modes;
+}
+
+void Channel::printNames(User& usr)
+{
+	std::string nameList;
+	for (std::set<User*>::iterator it = _users.begin(); it != _users.end();
+		 ++it)
+	{
+		User* u = *it;
+		if (isUserAnOperatorInChannel(*u))
+		{
+			nameList += "@" + u->getNick() + " ";
+		}
+		else
+		{
+			nameList += u->getNick() + " ";
+		}
+	}
+	// RPL_NAMREPLY(353)
+	usr.sendData(rplNamReply(SERVER_NAME, usr.getNick(), "=", _name, nameList));
+	// RPL_ENDOFNAMES(366)
+	usr.sendData(rplEndOfNames(SERVER_NAME, usr.getNick(), _name));
 }

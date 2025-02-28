@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/13 16:26:34 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/25 21:24:18 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/02/27 15:03:02 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -88,6 +88,7 @@ class Server
 	void ping(Message& msg, User& usr);
 	void pong(Message& msg, User& usr);
 	void away(Message& msg, User& usr);
+	void names(Message& msg, User& usr);
 
 	void handleChannelMode(Message& msg, User& usr);
 	void handleUserMode(Message& msg, User& usr);
