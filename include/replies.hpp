@@ -232,6 +232,16 @@ inline std::string errBadChannelKey(const std::string& serverName,
 		   " :Cannot join channel (+k)\r\n";
 }
 
+// ERR_BADCHANNELNAME (479)
+// "Cannot join channel (+k)"
+inline std::string errBadChannelName(const std::string& serverName,
+									 const std::string& nick,
+									 const std::string& channel)
+{
+	return ":" + serverName + " 479 " + nick + " " + channel +
+		   " :Illegal channel name\r\n";
+}
+
 // ERR_CHANNELISFULL (471)
 // "Cannot join channel (+l)"
 inline std::string errChannelIsFull(const std::string& serverName,
@@ -316,11 +326,11 @@ inline std::string rplChannelMode(const std::string& nick,
 }
 
 // 221 RPL_UMODEIS
-inline std::string rplUmodeIs(const std::string &serverName,
-                              const std::string &nick,
-                              const std::string &modeString)
+inline std::string rplUmodeIs(const std::string& serverName,
+							  const std::string& nick,
+							  const std::string& modeString)
 {
-    return ":" + serverName + " 221 " + nick + " " + modeString + "\r\n";
+	return ":" + serverName + " 221 " + nick + " " + modeString + "\r\n";
 }
 
 // ERR_KEYSET (467)
@@ -344,11 +354,11 @@ inline std::string errNoChanModes(const std::string& serverName,
 }
 
 // 481 ERR_NOPRIVILEGES
-inline std::string errNoPrivileges(const std::string &serverName,
-                                   const std::string &nick)
+inline std::string errNoPrivileges(const std::string& serverName,
+								   const std::string& nick)
 {
-    return ":" + serverName + " 481 " + nick +
-           " :Permission Denied- You're not an IRC operator\r\n";
+	return ":" + serverName + " 481 " + nick +
+		   " :Permission Denied- You're not an IRC operator\r\n";
 }
 
 // ERR_CHANOPRIVSNEEDED (482)

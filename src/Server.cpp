@@ -80,24 +80,15 @@ void Server::handleSignal(int signum)
 }
 
 const std::map<COMMANDTYPE, Server::executeFunc> Server::execute_map_ = {
-	{PASS, &Server::pass},
-	{NICK, &Server::nick},
-	{USER, &Server::user},
-	{OPER, &Server::oper},
-	{PRIVMSG, &Server::privmsg},
-	{JOIN, &Server::join},
-	{PART, &Server::part},
-	{INVITE, &Server::invite},
-	{WHO, &Server::who},
-	{WHOIS, &Server::whois},
-	{QUIT, &Server::quit},
-	{MODE, &Server::mode},
-	{KICK, &Server::kick},
-	{NOTICE, &Server::notice},
-	{TOPIC, &Server::topic},
-	{PING, &Server::ping},
-	{PONG, &Server::pong},
-	{AWAY, &Server::away},
+	{PASS, &Server::pass},       {NICK, &Server::nick},
+	{USER, &Server::user},       {OPER, &Server::oper},
+	{PRIVMSG, &Server::privmsg}, {JOIN, &Server::join},
+	{PART, &Server::part},       {INVITE, &Server::invite},
+	{WHO, &Server::who},         {WHOIS, &Server::whois},
+	{QUIT, &Server::quit},       {MODE, &Server::mode},
+	{KICK, &Server::kick},       {NOTICE, &Server::notice},
+	{TOPIC, &Server::topic},     {PING, &Server::ping},
+	{PONG, &Server::pong},       {AWAY, &Server::away},
 	{NAMES, &Server::names}
 	// Extend this list when we have more functions
 };
@@ -541,7 +532,6 @@ void Server::join(Message& msg, User& usr)
 	std::istringstream channelStream(channelArg);
 	std::istringstream passwordStream(passwordArg);
 	std::string channelName, channelPassword;
-
 	int channelCount = 0;
 	while (std::getline(channelStream, channelName, ','))
 	{
@@ -558,6 +548,12 @@ void Server::join(Message& msg, User& usr)
 	channelStream.str(channelArg);
 	while (std::getline(channelStream, channelName, ','))
 	{
+		if (channelName.size() > 50)
+		{
+			usr.sendData(
+				errBadChannelName(SERVER_NAME, usr.getNick(), channelName));
+			continue;
+		}
 		if (!passwordStream.eof())
 		{
 			if (!std::getline(passwordStream, channelPassword, ','))
@@ -1028,47 +1024,50 @@ void Server::away(Message& msg, User& usr)
 
 void Server::names(Message& msg, User& usr)
 {
-    std::vector<std::string> args = msg.getArgs();
-    
-    if (args.empty())
-    {
-        for (auto& chPair : _channels)
-        {
-            chPair.second.printNames(usr);
-        }
-        
-        std::string lonelyUsers;
-        for (auto& userPair : users_)
-        {
-            User& u = userPair.second;
-            if (u.getUsrChannelCount() == 0 && !u.hasMode('i'))
-            {
-                lonelyUsers += u.getNick() + " ";
-            }
-        }
-        if (!lonelyUsers.empty())
-        {
-            usr.sendData(rplNamReply(SERVER_NAME, usr.getNick(), "=", "*", lonelyUsers));
-            usr.sendData(rplEndOfNames(SERVER_NAME, usr.getNick(), "*"));
-        }
-        return;
-    }
-    
-    std::string channelList = args[0];
-    std::istringstream channelStream(channelList);
-    std::string channelName;
-    
-    while (std::getline(channelStream, channelName, ','))
-    {
-        auto it = _channels.find(channelName);
-        if (it != _channels.end())
-        {
-            it->second.printNames(usr);
-        }
-        else
-        {
-            usr.sendData(rplNamReply(SERVER_NAME, usr.getNick(), "=", channelName, ""));
-            usr.sendData(rplEndOfNames(SERVER_NAME, usr.getNick(), channelName));
-        }
-    }
+	std::vector<std::string> args = msg.getArgs();
+
+	if (args.empty())
+	{
+		for (auto& chPair : _channels)
+		{
+			chPair.second.printNames(usr);
+		}
+
+		std::string lonelyUsers;
+		for (auto& userPair : users_)
+		{
+			User& u = userPair.second;
+			if (u.getUsrChannelCount() == 0 && !u.hasMode('i'))
+			{
+				lonelyUsers += u.getNick() + " ";
+			}
+		}
+		if (!lonelyUsers.empty())
+		{
+			usr.sendData(
+				rplNamReply(SERVER_NAME, usr.getNick(), "=", "*", lonelyUsers));
+			usr.sendData(rplEndOfNames(SERVER_NAME, usr.getNick(), "*"));
+		}
+		return;
+	}
+
+	std::string channelList = args[0];
+	std::istringstream channelStream(channelList);
+	std::string channelName;
+
+	while (std::getline(channelStream, channelName, ','))
+	{
+		auto it = _channels.find(channelName);
+		if (it != _channels.end())
+		{
+			it->second.printNames(usr);
+		}
+		else
+		{
+			usr.sendData(
+				rplNamReply(SERVER_NAME, usr.getNick(), "=", channelName, ""));
+			usr.sendData(
+				rplEndOfNames(SERVER_NAME, usr.getNick(), channelName));
+		}
+	}
 }
