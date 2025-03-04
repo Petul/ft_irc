@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/15 15:58:57 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/27 15:02:33 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/03/04 21:30:40 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,7 @@
 enum COMMANDTYPE
 {
 	NONE,
+	CAP,
 	PASS,
 	NICK,
 	USER,

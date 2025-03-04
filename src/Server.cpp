@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/03/04 20:47:55 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/03/04 21:27:42 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -80,6 +80,7 @@ void Server::handleSignal(int signum)
 }
 
 const std::map<COMMANDTYPE, Server::executeFunc> Server::execute_map_ = {
+	{CAP, &Server::cap},
 	{PASS, &Server::pass},
 	{NICK, &Server::nick},
 	{USER, &Server::user},
@@ -251,7 +252,7 @@ void Server::clearDisconnectedClients()
 
 void Server::executeCommand(Message& msg, User& usr)
 {
-	if (!usr.isRegistered() && msg.getType() > 4)
+	if (!usr.isRegistered() && msg.getType() > 5)
 	{
 		return;
 	}
@@ -1099,4 +1100,18 @@ void Server::names(Message& msg, User& usr)
 				rplEndOfNames(SERVER_NAME, usr.getNick(), channelName));
 		}
 	}
+}
+
+void Server::cap(Message &msg, User &usr)
+{
+    std::vector<std::string> args = msg.getArgs();
+    if (args.empty())
+    {
+        usr.sendData(errNeedMoreParams(SERVER_NAME, usr.getNick(), "CAP"));
+        return;
+    }
+    if (args[0] == "LS")
+    {
+        usr.sendData("CAP * LS :\r\n");
+    }
 }
