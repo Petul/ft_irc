@@ -285,13 +285,18 @@ void Server::pass(Message& msg, User& usr)
 	}
 	usr.setPassword(msg.getArgs()[0]);
 	Logger::log(Logger::DEBUG, "Set user password to " + msg.getArgs()[0]);
+	if (!usr.isRegistered())
+	{
+		attemptRegistration(usr);
+	}
 }
 
-bool Server::isNickInUse(std::string& nick)
+bool Server::isNickInUse(const std::string& nick)
 {
 	for (auto& entry : users_)
 	{
-		if (entry.second.getNick() == nick)
+		if (entry.second.getNick() == nick &&
+			entry.second.isRegistered() == true)
 		{
 			return true;
 		}
@@ -362,24 +367,27 @@ void Server::attemptRegistration(User& usr)
 	{
 		return;
 	}
-	if (usr.getPassword() == server_pass_)
+	if (isNickInUse(usr.getNick()) == true)
 	{
-		usr.registerUser();
-		// TODO: make usr.getMddes(), getChannelModes() and
-		// date
-		usr.sendData(rplWelcome(SERVER_NAME, usr.getNick(), usr.getUsername(),
-								usr.getHost()));
-		usr.sendData(rplYourHost(SERVER_NAME, usr.getNick(), SERVER_VER));
-		usr.sendData(rplCreated(SERVER_NAME, usr.getNick(),
-								"today"));  // maybe we need date.
-		usr.sendData(rplMyInfo(SERVER_NAME, usr.getNick(), SERVER_VER,
-							   User::avail_user_modes,
-							   Channel::avail_channel_modes));
+		usr.sendData(errNicknameInUse(SERVER_NAME, usr.getNick()));
+		return;
 	}
-	else
+	if (usr.getPassword() != server_pass_)
 	{
-		throw std::invalid_argument{"Invalid password"};
+		usr.sendData(errPasswdMismatch(SERVER_NAME, usr.getNick()));
+		return;
 	}
+	usr.registerUser();
+	// TODO: make usr.getMddes(), getChannelModes() and
+	// date
+	usr.sendData(rplWelcome(SERVER_NAME, usr.getNick(), usr.getUsername(),
+							usr.getHost()));
+	usr.sendData(rplYourHost(SERVER_NAME, usr.getNick(), SERVER_VER));
+	usr.sendData(rplCreated(SERVER_NAME, usr.getNick(),
+							"today"));  // maybe we need date.
+	usr.sendData(rplMyInfo(SERVER_NAME, usr.getNick(), SERVER_VER,
+						   User::avail_user_modes,
+						   Channel::avail_channel_modes));
 }
 
 // Maybe this bloat will get moved to individual .cpp files

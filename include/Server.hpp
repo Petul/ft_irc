@@ -69,7 +69,7 @@ class Server
 
 	void executeCommand(Message& msg, User& usr);
 	void pass(Message& msg, User& usr);
-	bool isNickInUse(std::string& nick);
+	bool isNickInUse(const std::string& nick);
 	void nick(Message& msg, User& usr);
 	void user(Message& msg, User& usr);
 	void attemptRegistration(User& usr);
