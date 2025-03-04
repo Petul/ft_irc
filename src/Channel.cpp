@@ -4,7 +4,7 @@
 #include "Server.hpp"
 #include "replies.hpp"
 
-const std::string Channel::avail_channel_modes{"itklo"};
+const std::string Channel::avail_channel_modes{"itklob"};
 
 Channel::Channel(std::string name, User& usr)
 	: _name(name),
@@ -583,6 +583,48 @@ void Channel::applyChannelMode(User& setter, const std::string& modes,
 										param + "'");
 					}
 					break;
+				}
+			}
+			else if (c == 'b')
+			{
+				if (adding)
+				{
+					if (param.empty())
+					{
+						for (const auto& banmask : _banList)
+						{
+							setter.sendData(rplBanList(SERVER_NAME, setter.getNick(),
+										_name, banmask, setter.getNick(), "0"));
+						}
+						setter.sendData(rplEndOfBanList(SERVER_NAME, setter.getNick(), _name));
+						return;
+					}
+					else
+					{
+						_banList.insert(param);
+						Logger::log(Logger::DEBUG,
+								"User " + setter.getUsername() +
+								" added ban mask " + param + " on channel " + _name);
+					}
+				}
+				else
+				{
+					if (param.empty())
+					{
+						setter.sendData(errNeedMoreParams(SERVER_NAME, setter.getNick(),
+									"MODE -b requires a parameter"));
+					}
+					else
+					{
+						auto it = _banList.find(param);
+						if (it != _banList.end())
+						{
+							_banList.erase(it);
+							Logger::log(Logger::DEBUG,
+									"User " + setter.getUsername() +
+									" removed ban mask " + param + " on channel " + _name);
+						}
+					}
 				}
 			}
 		}

@@ -23,6 +23,7 @@ class Channel
 	std::set<User*> _users;
 	std::set<User*> _operators;
 	std::set<User*> _invitedUsers;
+	std::set<std::string> _banList;
 	bool _isInviteOnly;
 	bool _restrictionsOnTopic;
 	std::string _topic;
