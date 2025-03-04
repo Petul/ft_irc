@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/03/04 20:19:53 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/03/04 20:47:55 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -795,8 +795,8 @@ void Server::handleChannelMode(Message& msg, User& usr)
 		}
 		if (!ch.isUserAnOperatorInChannel(usr))
 		{
-			// Skip priv check for banlist
-			if (!((modes == "+b" || modes == "b") && param.empty()))
+			// Skip priv check for banlist if no parameters
+			if (!((modes == "+b" || modes == "b" || modes == "-b") && param.empty()))
 			{
 				usr.sendData(
 						errChanPrivsNeeded(SERVER_NAME, usr.getNick(), channel_name));

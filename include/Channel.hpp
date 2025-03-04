@@ -85,4 +85,6 @@ class Channel
 	std::string getChannelModes() const;
 	void printNames(User& usr);
 	static const std::string avail_channel_modes;
+	bool wildcardMatch(const std::string &pattern, const std::string &str) const;
+	bool isBanned(const std::string& hostmask) const;
 };

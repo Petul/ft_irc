@@ -175,9 +175,61 @@ void Channel::displayChannelMessage(User& sender, std::string msg)
 	}
 }
 
+bool Channel::wildcardMatch(const std::string &pattern, const std::string &str) const
+{
+	size_t pIdx = 0, sIdx = 0;
+	size_t starIdx = std::string::npos, match = 0;
+	while (sIdx < str.size())
+	{
+		if (pIdx < pattern.size() && (pattern[pIdx] == '?' || pattern[pIdx] == str[sIdx]))
+		{
+			++pIdx;
+			++sIdx;
+		}
+		else if (pIdx < pattern.size() && pattern[pIdx] == '*')
+		{
+			starIdx = pIdx;
+			match = sIdx;
+			++pIdx;
+		}
+		else if (starIdx != std::string::npos)
+		{
+			pIdx = starIdx + 1;
+			++match;
+			sIdx = match;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	while (pIdx < pattern.size() && pattern[pIdx] == '*')
+	{
+		++pIdx;
+	}
+	return pIdx == pattern.size();
+}
+
+bool Channel::isBanned(const std::string& hostmask) const
+{
+	for (const auto& banmask : _banList)
+	{
+		if (wildcardMatch(banmask, hostmask))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 void Channel::joinUser(const std::string& serverName, User& usr,
 					   const std::string& attemptedPassword)
 {
+	if (isBanned(usr.getNick() + "!~" + usr.getUsername() + "@" + usr.getHost()))
+	{
+		usr.sendData(errBannedFromChan(SERVER_NAME, usr.getNick(), _name));
+		return;
+	}
 	if (_isInviteOnly && !isUserInvited(usr) && !usr.getIsIrcOperator())
 	{
 		usr.sendData(errInviteOnlyChan(serverName, usr.getNick(), _name));
@@ -611,8 +663,13 @@ void Channel::applyChannelMode(User& setter, const std::string& modes,
 				{
 					if (param.empty())
 					{
-						setter.sendData(errNeedMoreParams(SERVER_NAME, setter.getNick(),
-									"MODE -b requires a parameter"));
+						for (const auto& banmask : _banList)
+						{
+							setter.sendData(rplBanList(SERVER_NAME, setter.getNick(),
+										_name, banmask, setter.getNick(), "0"));
+						}
+						setter.sendData(rplEndOfBanList(SERVER_NAME, setter.getNick(), _name));
+						return;
 					}
 					else
 					{
