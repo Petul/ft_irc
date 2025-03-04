@@ -92,4 +92,7 @@ class Server
 	void handleChannelMode(Message& msg, User& usr);
 	void handleUserMode(Message& msg, User& usr);
 	void handleQuitServer(std::string& quitMsg, User& usr);
+	void handleDisconnectServer(std::string& quitMesg, User& usr);
+	void exitAllChannels(std::string& quitMsg, User& usr);
+	void disablePollfd(int fd);
 };

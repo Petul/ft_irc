@@ -206,7 +206,7 @@ void Server::receiveDataFromClient(int i)
 		Logger::log(Logger::INFO, msg);
 		std::string quitMsg = rplQuit(usr->getNick(), usr->getUsername(),
 									  usr->getHost(), "Client disconnect");
-		handleQuitServer(quitMsg, *usr);
+		handleDisconnectServer(quitMsg, *usr);
 		return;
 	}
 	while (usr->getNextMessage(buf))
@@ -675,7 +675,7 @@ void Server::quit(Message& msg, User& usr)
 	handleQuitServer(quitMsg, usr);
 }
 
-void Server::handleQuitServer(std::string& quitMsg, User& usr)
+void Server::exitAllChannels(std::string& quitMsg, User& usr)
 {
 	auto it = _channels.begin();
 	while (it != _channels.end())
@@ -694,19 +694,34 @@ void Server::handleQuitServer(std::string& quitMsg, User& usr)
 			it++;
 		}
 	}
+}
 
-	int fd = usr.getSocket();
-	// Works, but can we make it better?
-	for (auto it = poll_fds_.begin(); it != poll_fds_.end(); it++)
+void Server::disablePollfd(int fd)
+{
+	auto it = find_if(poll_fds_.begin(), poll_fds_.end(),
+					  [fd](struct pollfd& pfd) { return pfd.fd == fd; });
+	if (it != poll_fds_.end())
 	{
-		if (it->fd == fd)
-		{
-			it->fd =
-				-1;  // Will be deleted by main loop. Don't erase here directly.
-			break;
-		}
+		it->fd = -1;
 	}
+}
+
+void Server::handleQuitServer(std::string& quitMsg, User& usr)
+{
+	int fd = usr.getSocket();
+	exitAllChannels(quitMsg, usr);
+	disablePollfd(fd);
 	usr.sendData(quitMsg);
+	users_.at(fd).markUserForDeletion();
+	close(fd);
+}
+
+// If user has disconnected we should not try to send data to the user
+void Server::handleDisconnectServer(std::string& quitMsg, User& usr)
+{
+	int fd = usr.getSocket();
+	exitAllChannels(quitMsg, usr);
+	disablePollfd(fd);
 	users_.at(fd).markUserForDeletion();
 	close(fd);
 }
