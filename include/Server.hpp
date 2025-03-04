@@ -83,7 +83,6 @@ class Server
 	void quit(Message& msg, User& usr);
 	void mode(Message& msg, User& usr);
 	void kick(Message& msg, User& usr);
-	void notice(Message& msg, User& usr);
 	void topic(Message& msg, User& usr);
 	void ping(Message& msg, User& usr);
 	void pong(Message& msg, User& usr);

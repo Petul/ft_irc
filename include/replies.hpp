@@ -646,14 +646,6 @@ inline std::string rplPrivMsg(const std::string& source,
 	return ":" + source + " PRIVMSG " + target + " :" + message + "\r\n";
 }
 
-// Standard NOTICE (for broadcast)
-inline std::string rplNotice(const std::string& source,
-							 const std::string& target,
-							 const std::string& message)
-{
-	return ":" + source + " NOTICE " + target + " :" + message + "\r\n";
-}
-
 // WHO/WHOIS Command Replies
 
 inline std::string rplWhoReply(const std::string& serverName,

@@ -13,14 +13,14 @@
 NAME := ircserv
 BOT_NAME := bot
 CXX := c++
-CXXFLAGS := -Wall -Wextra -g -std=c++14
+CXXFLAGS := -Wall -Wextra -Werror -std=c++14
 SOURCES := src/main.cpp src/Server.cpp src/User.cpp src/Logger.cpp src/Channel.cpp src/Message.cpp
 BOT_SOURCES := src/bot/main.cpp src/bot/Bot.cpp src/bot/GuardedChannel.cpp
 INCLUDES := include
 OBJECTS := $(SOURCES:.cpp=.o)
 BOT_OBJECTS := $(BOT_SOURCES:.cpp=.o)
 
-LOG_LEVEL := DEBUG #DEBUG/INFO/WARNING/ERROR
+LOG_LEVEL := INFO #DEBUG/INFO/WARNING/ERROR
 
 .PHONY: all
 all: $(NAME)

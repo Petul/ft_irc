@@ -80,15 +80,23 @@ void Server::handleSignal(int signum)
 }
 
 const std::map<COMMANDTYPE, Server::executeFunc> Server::execute_map_ = {
-	{PASS, &Server::pass},       {NICK, &Server::nick},
-	{USER, &Server::user},       {OPER, &Server::oper},
-	{PRIVMSG, &Server::privmsg}, {JOIN, &Server::join},
-	{PART, &Server::part},       {INVITE, &Server::invite},
-	{WHO, &Server::who},         {WHOIS, &Server::whois},
-	{QUIT, &Server::quit},       {MODE, &Server::mode},
-	{KICK, &Server::kick},       {NOTICE, &Server::notice},
-	{TOPIC, &Server::topic},     {PING, &Server::ping},
-	{PONG, &Server::pong},       {AWAY, &Server::away},
+	{PASS, &Server::pass},
+	{NICK, &Server::nick},
+	{USER, &Server::user},
+	{OPER, &Server::oper},
+	{PRIVMSG, &Server::privmsg},
+	{JOIN, &Server::join},
+	{PART, &Server::part},
+	{INVITE, &Server::invite},
+	{WHO, &Server::who},
+	{WHOIS, &Server::whois},
+	{QUIT, &Server::quit},
+	{MODE, &Server::mode},
+	{KICK, &Server::kick},
+	{TOPIC, &Server::topic},
+	{PING, &Server::ping},
+	{PONG, &Server::pong},
+	{AWAY, &Server::away},
 	{NAMES, &Server::names}
 	// Extend this list when we have more functions
 };
@@ -895,11 +903,6 @@ void Server::kick(Message& msg, User& usr)
 	}
 }
 
-void Server::notice(Message& msg, User& usr)
-{
-	// not sure do we implent this
-}
-
 void Server::who(Message& msg, User& usr)
 {
 	std::vector<std::string> args = msg.getArgs();
@@ -1011,7 +1014,7 @@ void Server::ping(Message& msg, User& usr)
 	Logger::log(Logger::DEBUG, "Sent PONG to user " + usr.getNick());
 }
 
-void Server::pong(Message& msg, User& usr)
+void Server::pong(Message&, User& usr)
 {
 	Logger::log(Logger::DEBUG, "Received PONG from user " + usr.getNick());
 }

@@ -24,13 +24,11 @@ Message::Message(std::string& raw_message)
 }
 
 const std::map<std::string, COMMANDTYPE> Message::command_map_ = {
-	{"PASS", PASS},   {"NICK", NICK},       {"USER", USER},
-	{"OPER", OPER},   {"PRIVMSG", PRIVMSG}, {"JOIN", JOIN},
-	{"PART", PART},   {"INVITE", INVITE},   {"WHO", WHO},
-	{"WHOIS", WHOIS}, {"QUIT", QUIT},       {"MODE", MODE},
-	{"KICK", KICK},   {"NOTICE", NOTICE},   {"TOPIC", TOPIC},
-	{"PING", PING},   {"PONG", PONG},       {"AWAY", AWAY},
-	{"NAMES", NAMES}};
+	{"PASS", PASS},       {"NICK", NICK},   {"USER", USER}, {"OPER", OPER},
+	{"PRIVMSG", PRIVMSG}, {"JOIN", JOIN},   {"PART", PART}, {"INVITE", INVITE},
+	{"WHO", WHO},         {"WHOIS", WHOIS}, {"QUIT", QUIT}, {"MODE", MODE},
+	{"KICK", KICK},       {"TOPIC", TOPIC}, {"PING", PING}, {"PONG", PONG},
+	{"AWAY", AWAY},       {"NAMES", NAMES}};
 
 std::string& Message::getRawType()
 {
