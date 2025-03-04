@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/17 08:06:20 by pleander          #+#    #+#             */
-/*   Updated: 2025/02/27 15:02:07 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/03/04 21:24:42 by jmakkone         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,11 +24,25 @@ Message::Message(std::string& raw_message)
 }
 
 const std::map<std::string, COMMANDTYPE> Message::command_map_ = {
-	{"PASS", PASS},       {"NICK", NICK},   {"USER", USER}, {"OPER", OPER},
-	{"PRIVMSG", PRIVMSG}, {"JOIN", JOIN},   {"PART", PART}, {"INVITE", INVITE},
-	{"WHO", WHO},         {"WHOIS", WHOIS}, {"QUIT", QUIT}, {"MODE", MODE},
-	{"KICK", KICK},       {"TOPIC", TOPIC}, {"PING", PING}, {"PONG", PONG},
-	{"AWAY", AWAY},       {"NAMES", NAMES}};
+	{"CAP", CAP},
+	{"PASS", PASS},
+	{"NICK", NICK},
+	{"USER", USER},
+	{"OPER", OPER},
+	{"PRIVMSG", PRIVMSG},
+	{"JOIN", JOIN},
+	{"PART", PART},
+	{"INVITE", INVITE},
+	{"WHO", WHO},
+	{"WHOIS", WHOIS},
+	{"QUIT", QUIT},
+	{"MODE", MODE},
+	{"KICK", KICK},
+	{"TOPIC", TOPIC},
+	{"PING", PING},
+	{"PONG", PONG},
+	{"AWAY", AWAY},
+	{"NAMES", NAMES}};
 
 std::string& Message::getRawType()
 {

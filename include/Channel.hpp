@@ -23,6 +23,7 @@ class Channel
 	std::set<User*> _users;
 	std::set<User*> _operators;
 	std::set<User*> _invitedUsers;
+	std::set<std::string> _banList;
 	bool _isInviteOnly;
 	bool _restrictionsOnTopic;
 	std::string _topic;
@@ -84,4 +85,6 @@ class Channel
 	std::string getChannelModes() const;
 	void printNames(User& usr);
 	static const std::string avail_channel_modes;
+	bool wildcardMatch(const std::string &pattern, const std::string &str) const;
+	bool isBanned(const std::string& hostmask) const;
 };
