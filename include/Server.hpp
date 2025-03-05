@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/13 16:26:34 by pleander          #+#    #+#             */
-/*   Updated: 2025/03/04 21:08:29 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/03/05 16:00:59 by mpellegr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,6 +24,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <regex>
 
 #include "Channel.hpp"
 #include "Message.hpp"
@@ -69,13 +70,18 @@ class Server
 
 	void executeCommand(Message& msg, User& usr);
 	void pass(Message& msg, User& usr);
+	bool isPassValid(const std::string& pass);
 	bool isNickInUse(const std::string& nick);
+	bool isNickValid(const std::string& nick);
 	void nick(Message& msg, User& usr);
 	void user(Message& msg, User& usr);
+	bool isUsernameValid(const std::string& user);
+	bool isRealnameValid(const std::string& name);
 	void attemptRegistration(User& usr);
 	void oper(Message& msg, User& usr);
 	void privmsg(Message& msg, User& usr);
 	void join(Message& msg, User& usr);
+	bool isChannelValid(const std::string& channel);
 	void part(Message& msg, User& usr);
 	void invite(Message& msg, User& usr);
 	void who(Message& msg, User& usr);
