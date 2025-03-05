@@ -35,19 +35,26 @@ int main(int argc, char** argv)
 			if (!isdigit(it))
 			{
 				throw std::invalid_argument{
-					"Port must be numeric and positive"};
+					"Port must be numeric and positive."};
 			}
 		}
 		int port = std::stoi(p_str);
 		if (port < 1 || port > 65535)
 		{
-			throw std::invalid_argument{"Port must be in range 1-65535"};
+			throw std::invalid_argument{"Port must be in range 1-65535."};
 		}
 		std::string password{argv[2]};
 		if (password.size() < 4)
 		{
 			throw std::invalid_argument{
-				"Password must contain at least 4 characters"};
+				"Password must contain at least 4 characters."};
+		}
+		for (auto it : password)
+		{
+			if (isspace(it))
+			{
+				throw(std::invalid_argument{"Password cannot contain spaces."});
+			}
 		}
 		Server server(password, port);
 		server.startServer();
