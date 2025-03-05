@@ -80,24 +80,15 @@ void Server::handleSignal(int signum)
 }
 
 const std::map<COMMANDTYPE, Server::executeFunc> Server::execute_map_ = {
-	{CAP, &Server::cap},
-	{PASS, &Server::pass},
-	{NICK, &Server::nick},
-	{USER, &Server::user},
-	{OPER, &Server::oper},
-	{PRIVMSG, &Server::privmsg},
-	{JOIN, &Server::join},
-	{PART, &Server::part},
-	{INVITE, &Server::invite},
-	{WHO, &Server::who},
-	{WHOIS, &Server::whois},
-	{QUIT, &Server::quit},
-	{MODE, &Server::mode},
-	{KICK, &Server::kick},
-	{TOPIC, &Server::topic},
-	{PING, &Server::ping},
-	{PONG, &Server::pong},
-	{AWAY, &Server::away},
+	{CAP, &Server::cap},       {PASS, &Server::pass},
+	{NICK, &Server::nick},     {USER, &Server::user},
+	{OPER, &Server::oper},     {PRIVMSG, &Server::privmsg},
+	{JOIN, &Server::join},     {PART, &Server::part},
+	{INVITE, &Server::invite}, {WHO, &Server::who},
+	{WHOIS, &Server::whois},   {QUIT, &Server::quit},
+	{MODE, &Server::mode},     {KICK, &Server::kick},
+	{TOPIC, &Server::topic},   {PING, &Server::ping},
+	{PONG, &Server::pong},     {AWAY, &Server::away},
 	{NAMES, &Server::names}
 	// Extend this list when we have more functions
 };
@@ -427,17 +418,16 @@ void Server::privmsg(Message& msg, User& usr)
 	/*✓	RPL_AWAY*/
 
 	std::vector<std::string> args = msg.getArgs();
-	if (args[0].empty())
-	{
-		usr.sendData(errNoRecipient(SERVER_NAME, usr.getNick(), "PRIVMSG"));
-		return;
-	}
 	if (args.size() < 2 || args[1].empty())
 	{
 		usr.sendData(errNoTextToSend(SERVER_NAME, usr.getNick()));
 		return;
 	}
-
+	if (args[0].empty())
+	{
+		usr.sendData(errNoRecipient(SERVER_NAME, usr.getNick(), "PRIVMSG"));
+		return;
+	}
 	std::string targets = args[0];
 	std::string message = args[1];
 	std::istringstream targetStream(targets);
@@ -797,10 +787,11 @@ void Server::handleChannelMode(Message& msg, User& usr)
 		if (!ch.isUserAnOperatorInChannel(usr))
 		{
 			// Skip priv check for banlist if no parameters
-			if (!((modes == "+b" || modes == "b" || modes == "-b") && param.empty()))
+			if (!((modes == "+b" || modes == "b" || modes == "-b") &&
+				  param.empty()))
 			{
-				usr.sendData(
-						errChanPrivsNeeded(SERVER_NAME, usr.getNick(), channel_name));
+				usr.sendData(errChanPrivsNeeded(SERVER_NAME, usr.getNick(),
+												channel_name));
 				return;
 			}
 		}
@@ -1102,16 +1093,16 @@ void Server::names(Message& msg, User& usr)
 	}
 }
 
-void Server::cap(Message &msg, User &usr)
+void Server::cap(Message& msg, User& usr)
 {
-    std::vector<std::string> args = msg.getArgs();
-    if (args.empty())
-    {
-        usr.sendData(errNeedMoreParams(SERVER_NAME, usr.getNick(), "CAP"));
-        return;
-    }
-    if (args[0] == "LS")
-    {
-        usr.sendData("CAP * LS :\r\n");
-    }
+	std::vector<std::string> args = msg.getArgs();
+	if (args.empty())
+	{
+		usr.sendData(errNeedMoreParams(SERVER_NAME, usr.getNick(), "CAP"));
+		return;
+	}
+	if (args[0] == "LS")
+	{
+		usr.sendData("CAP * LS :\r\n");
+	}
 }
