@@ -6,7 +6,7 @@
 #    By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/02/14 13:28:34 by pleander          #+#    #+#              #
-#    Updated: 2025/02/28 04:38:23 by jmakkone         ###   ########.fr        #
+#    Updated: 2025/03/05 20:53:44 by jmakkone         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -28,7 +28,6 @@ all: $(NAME)
 $(NAME): $(OBJECTS)
 		$(CXX) $(OBJECTS) -o $(NAME)
 
-.PHONY: bot
 bot: $(BOT_OBJECTS)
 	$(CXX) $(BOT_OBJECTS) -o $(BOT_NAME)
 
