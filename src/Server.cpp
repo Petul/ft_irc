@@ -6,7 +6,7 @@
 /*   By: mpellegr <mpellegr@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 09:51:59 by pleander          #+#    #+#             */
-/*   Updated: 2025/03/04 21:27:42 by jmakkone         ###   ########.fr       */
+/*   Updated: 2025/03/05 16:05:03 by mpellegr         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -260,6 +260,22 @@ void Server::executeCommand(Message& msg, User& usr)
 	}
 }
 
+bool Server::isPassValid(const std::string& pass)
+{
+	if (pass.length() < 1 || pass.length() > 23)
+	{
+		return false;
+	}
+	for (char c : pass)
+	{
+		if (c == 0 || (c >= 9 && c <= 13) || c == 32)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
 void Server::pass(Message& msg, User& usr)
 {
 	/*Numeric Replies:*/
@@ -274,6 +290,11 @@ void Server::pass(Message& msg, User& usr)
 	else if (usr.isRegistered())
 	{
 		usr.sendData(errAlreadyRegistered());
+	}
+	if (!isPassValid(msg.getArgs()[0]))
+	{
+		usr.sendData(":ircserv 432 " + msg.getArgs()[0] + " :Erroneous password\r\n");
+		throw std::invalid_argument{"Invalid password"};
 	}
 	usr.setPassword(msg.getArgs()[0]);
 	Logger::log(Logger::DEBUG, "Set user password to " + msg.getArgs()[0]);
@@ -296,6 +317,23 @@ bool Server::isNickInUse(const std::string& nick)
 	return false;
 }
 
+bool Server::isNickValid(const std::string& nick)
+{
+	std::regex nickRegex(R"(^[A-Za-z\[\]\\`_^{}|][A-Za-z0-9\[\]\\`_^{}|-]{0,8}$)");
+	if (!std::regex_match(nick, nickRegex))
+	{
+		return false;
+	}
+	for (char c : nick)
+	{
+		if (c < 32 || c == 127)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
 void Server::nick(Message& msg, User& usr)
 {
 	// We need to handle these possible errors.
@@ -312,6 +350,11 @@ void Server::nick(Message& msg, User& usr)
 		throw std::invalid_argument{"No nick name given"};
 	}
 	std::string newNick = msg.getArgs()[0];
+	if (!isNickValid(newNick))
+	{
+		usr.sendData(errErroneusNickname(SERVER_NAME, newNick));
+		throw std::invalid_argument{"Nick name not valid"};
+	}
 	if (isNickInUse(newNick))
 	{
 		usr.sendData(errNicknameInUse(SERVER_NAME, newNick));
@@ -330,6 +373,29 @@ void Server::nick(Message& msg, User& usr)
 	}
 }
 
+bool Server::isUsernameValid(const std::string& user)
+{
+	for (char c : user)
+	{
+		if (c == 0 || c == 13 || c == 10 || c == 32 || c == 64)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+bool Server::isRealnameValid(const std::string& name)
+{
+	for (char c : name) {
+		if (c < 32 || c == 127)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
 void Server::user(Message& msg, User& usr)
 {
 	/*Numeric Replies:*/
@@ -339,6 +405,16 @@ void Server::user(Message& msg, User& usr)
 	{
 		usr.sendData(errNeedMoreParams(SERVER_NAME, usr.getNick(), "USER"));
 		throw std::invalid_argument{"Invalid number of arguments"};
+	}
+	if (!isUsernameValid(msg.getArgs().front()))
+	{
+		usr.sendData(":ircserv 432 " + msg.getArgs().front() + " :Erroneous username\r\n");
+		throw std::invalid_argument{"Invalid username"};
+	}
+	if (!isRealnameValid(msg.getArgs().back()))
+	{
+		usr.sendData(":ircserv 432 " + msg.getArgs().back() + " :Erroneous realname\r\n");
+		throw std::invalid_argument{"Invalid realname"};
 	}
 	usr.setUsername(msg.getArgs().front());
 	usr.setRealName(msg.getArgs().back());
@@ -516,6 +592,26 @@ void Server::privmsg(Message& msg, User& usr)
 	}
 }
 
+bool Server::isChannelValid(const std::string& channel)
+{
+	char firstChar = channel[0];
+	if (firstChar != '#' && firstChar != '+' && firstChar != '!' && firstChar != '&') {
+		return false;
+	}
+	if (firstChar == '!') {
+		if (channel.size() != 6 || channel.substr(1, 5).find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789") != std::string::npos) {
+			return false;
+		}
+	}
+	for (size_t i = 1; i < channel.size(); ++i) {
+		char c = channel[i];
+		if (c == 0 || c == 7 || c == 13 || c == 10 || c == 32 || c == 44 || c == 58) {
+			return false;
+		}
+	}
+	return true;
+}
+
 void Server::join(Message& msg, User& usr)
 {
 	/*Numeric Replies:*/
@@ -555,7 +651,7 @@ void Server::join(Message& msg, User& usr)
 	channelStream.str(channelArg);
 	while (std::getline(channelStream, channelName, ','))
 	{
-		if (channelName.size() > 50)
+		if (channelName.size() > 50 || !isChannelValid(channelName))
 		{
 			usr.sendData(
 				errBadChannelName(SERVER_NAME, usr.getNick(), channelName));
@@ -573,7 +669,7 @@ void Server::join(Message& msg, User& usr)
 			channelPassword.clear();
 		}
 
-		if (channelName.empty() || channelName[0] != '#')
+		if (channelName.empty()/* || channelName[0] != '#'*/)
 		{
 			usr.sendData(
 				errNoSuchChannel(SERVER_NAME, usr.getNick(), channelName));
